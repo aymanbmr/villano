@@ -8,6 +8,7 @@ import {
   type PayOrderPayload,
   type Product,
   type UpdateOrderPayload,
+  formatPrice,
   orderLabel,
 } from '../api';
 import { useCart } from '../useCart';
@@ -19,6 +20,7 @@ import { PrintTicket, type TicketKind } from '../components/PrintTicket';
 import { usePrint } from '../usePrint';
 
 type View = 'new' | 'open';
+type MobilePanel = 'menu' | 'cart';
 
 const AUTO_PRINT_KEY = 'villano.autoPrintKitchen';
 
@@ -32,6 +34,8 @@ export function CaissePage() {
   const [loadError, setLoadError] = useState<string | null>(null);
 
   const [view, setView] = useState<View>('new');
+  // Small screens (waiter's phone): show either the menu or the cart, full screen
+  const [mobilePanel, setMobilePanel] = useState<MobilePanel>('menu');
   const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
   // Open order the cart is adding items to (null = creating a new order)
   const [appendTo, setAppendTo] = useState<Order | null>(null);
@@ -192,6 +196,13 @@ export function CaissePage() {
   const startAppend = (order: Order) => {
     setAppendTo(order);
     setView('new');
+    // On phone the product picker is a separate full-screen panel: jump to it
+    setMobilePanel('menu');
+  };
+
+  const openCart = () => {
+    setView('new');
+    setMobilePanel('cart');
   };
 
   const cancelAppend = () => {
@@ -201,7 +212,7 @@ export function CaissePage() {
 
   return (
     <>
-      <div className="pos">
+      <div className={`pos show-${mobilePanel}`}>
         {loadError ? (
           <div className="load-error">
             <p>{loadError}</p>
@@ -271,6 +282,37 @@ export function CaissePage() {
             />
           )}
         </aside>
+
+        {mobilePanel === 'menu' && cart.count > 0 && (
+          <button type="button" className="mobile-cart-bar" onClick={openCart}>
+            <span>🛒 {cart.count} article{cart.count > 1 ? 's' : ''}</span>
+            <span>{formatPrice(cart.subtotal)}</span>
+          </button>
+        )}
+
+        <nav className="mobile-nav">
+          <button
+            type="button"
+            className={mobilePanel === 'menu' ? 'is-active' : ''}
+            onClick={() => setMobilePanel('menu')}
+          >
+            <span className="nav-icon">🍽</span>
+            Menu
+          </button>
+          <button
+            type="button"
+            className={mobilePanel === 'cart' ? 'is-active' : ''}
+            onClick={() => setMobilePanel('cart')}
+          >
+            <span className="nav-icon">🧾</span>
+            Commande
+            {(view === 'new' ? cart.count : pendingOrders.length) > 0 && (
+              <span className="pill pill-warn">
+                {view === 'new' ? cart.count : pendingOrders.length}
+              </span>
+            )}
+          </button>
+        </nav>
 
         {toast && <div className="toast">{toast}</div>}
         {paidOrder && (
