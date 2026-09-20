@@ -1,0 +1,10 @@
+node_modules/
+dist/
+*.log
+
+# Local data: SQLite database and uploaded product photos
+backend/villano.sqlite
+backend/uploads/
+
+# Secrets
+backend/.env

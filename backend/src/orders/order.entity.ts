@@ -1,0 +1,97 @@
+import {
+  Column,
+  CreateDateColumn,
+  Entity,
+  JoinColumn,
+  ManyToOne,
+  OneToMany,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
+
+export type PaymentMethod = 'cash' | 'card';
+export type OrderType = 'dine_in' | 'takeaway';
+// pending: sent to the kitchen, not paid yet (stock already reserved)
+// paid:    settled at the caisse
+// cancelled: stock was put back
+export type OrderStatus = 'pending' | 'paid' | 'cancelled';
+
+@Entity('orders')
+export class Order {
+  @PrimaryGeneratedColumn()
+  id: number;
+
+  // Human-friendly ticket number printed on the receipt, e.g. "20260920-042"
+  @Column({ unique: true })
+  ticketNumber: string;
+
+  @Column({ type: 'text', default: 'dine_in' })
+  orderType: OrderType;
+
+  @Column({ type: 'text', nullable: true })
+  tableNumber: string | null;
+
+  @Column({ type: 'text', default: 'pending' })
+  status: OrderStatus;
+
+  @Column({ type: 'real' })
+  subtotal: number;
+
+  @Column({ type: 'real', default: 0 })
+  discount: number;
+
+  @Column({ type: 'real' })
+  total: number;
+
+  // Payment fields stay null until the order is paid
+  @Column({ type: 'text', nullable: true })
+  paymentMethod: PaymentMethod | null;
+
+  // Amount handed over by the customer (cash); equals total for card
+  @Column({ type: 'real', nullable: true })
+  amountPaid: number | null;
+
+  @Column({ type: 'real', default: 0 })
+  changeGiven: number;
+
+  @Column({ type: 'datetime', nullable: true })
+  paidAt: Date | null;
+
+  @Column({ type: 'text', nullable: true })
+  note: string | null;
+
+  @OneToMany(() => OrderItem, (item) => item.order, { cascade: true, eager: true })
+  items: OrderItem[];
+
+  @CreateDateColumn()
+  createdAt: Date;
+}
+
+// Order lines snapshot the product name/price so receipts stay correct
+// even if the product is renamed or repriced later.
+@Entity('order_items')
+export class OrderItem {
+  @PrimaryGeneratedColumn()
+  id: number;
+
+  @ManyToOne(() => Order, (order) => order.items, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'orderId' })
+  order: Order;
+
+  @Column()
+  orderId: number;
+
+  @Column({ type: 'integer', nullable: true })
+  productId: number | null;
+
+  @Column()
+  productName: string;
+
+  @Column({ type: 'real' })
+  unitPrice: number;
+
+  @Column({ type: 'integer' })
+  quantity: number;
+
+  @Column({ type: 'real' })
+  lineTotal: number;
+}
