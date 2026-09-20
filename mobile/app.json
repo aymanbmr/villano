@@ -1,0 +1,55 @@
+{
+  "expo": {
+    "name": "Villano",
+    "slug": "villano",
+    "version": "1.0.0",
+    "orientation": "default",
+    "icon": "./assets/icon.png",
+    "scheme": "villano",
+    "userInterfaceStyle": "light",
+    "backgroundColor": "#1c1917",
+    "extra": {
+      "appUrl": "http://192.168.1.2:5173"
+    },
+    "ios": {
+      "bundleIdentifier": "com.villano.caisse",
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSAppTransportSecurity": {
+          "NSAllowsArbitraryLoads": true,
+          "NSAllowsLocalNetworking": true
+        },
+        "NSLocalNetworkUsageDescription": "Villano se connecte au serveur de caisse du restaurant sur le réseau Wi-Fi local.",
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "package": "com.villano.caisse",
+      "adaptiveIcon": {
+        "backgroundColor": "#b45309",
+        "foregroundImage": "./assets/android-icon-foreground.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "plugins": [
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 160,
+          "resizeMode": "contain",
+          "backgroundColor": "#1c1917"
+        }
+      ],
+      "expo-build-properties",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "usesCleartextTraffic": true
+          }
+        }
+      ]
+    ]
+  }
+}

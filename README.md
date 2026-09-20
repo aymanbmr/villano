@@ -115,3 +115,25 @@ en-têtes/pieds de page) :
 - **Ticket de caisse** — bouton « 🖨 Imprimer le ticket » après encaissement.
 
 Nom, adresse, téléphone et message de pied de page : `frontend/src/config.ts`.
+
+## Application native iOS / Android (dossier `mobile/`, EAS Build)
+
+`mobile/` est une coque **Expo** : un écran natif (WebView) qui affiche
+l'application. Les builds se font dans le cloud avec **EAS Build** — pas besoin
+de Mac. Compte Expo (gratuit) + compte Apple Developer pour iOS.
+
+Adresse du serveur affichée par l'app : `mobile/app.json` → `extra.appUrl`
+(par défaut `http://192.168.1.2:5173`, l'IP du PC sur le Wi-Fi du restaurant).
+
+```bash
+cd mobile
+npx eas login                       # compte Expo
+npx eas init                        # lie le projet à votre compte (une fois)
+npx eas device:create               # iOS : enregistre votre iPhone (lien à ouvrir sur le téléphone)
+npm run build:ios                   # build iOS installable (demande l'identifiant Apple la 1re fois)
+npm run build:android               # APK Android installable
+```
+
+À la fin du build, EAS affiche un lien / QR code : l'ouvrir sur le téléphone
+pour installer l'app. Pour TestFlight / App Store : `npm run build:store` puis
+`npx eas submit -p ios`.
