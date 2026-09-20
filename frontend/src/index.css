@@ -2114,14 +2114,165 @@ select.input {
   }
 
   .admin-main {
-    padding: 16px 14px 40px;
+    padding: 14px 12px 40px;
   }
 
   .admin-nav button span {
     display: none;
   }
 
+  .admin-nav button {
+    padding: 8px 10px;
+  }
+
+  .appbar-subtitle {
+    display: none;
+  }
+
   .form-grid {
     grid-template-columns: 1fr;
   }
+
+  .toolbar {
+    flex-wrap: wrap;
+  }
+
+  .toolbar .search {
+    max-width: none;
+    flex: 1 1 100%;
+  }
+
+  .toolbar .select-inline {
+    flex: 1;
+  }
+
+  .toolbar-spacer {
+    display: none;
+  }
+
+  .role-cards {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+
+  .role-card {
+    padding: 10px 6px;
+    font-size: 11px;
+  }
+
+  .role-count {
+    font-size: 20px;
+  }
+
+  /* Tables become stacked cards: one card per row, label + value per cell */
+  .table,
+  .table tbody,
+  .table tr,
+  .table td {
+    display: block;
+  }
+
+  .table {
+    background: none;
+    border: none;
+    box-shadow: none;
+  }
+
+  .table thead {
+    display: none;
+  }
+
+  .table tbody tr {
+    margin-bottom: 10px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-xs);
+    overflow: hidden;
+  }
+
+  .table td {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 8px 14px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .table td:first-child {
+    padding: 12px 14px;
+  }
+
+  .table td[data-label]::before {
+    content: attr(data-label);
+    flex-shrink: 0;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .table td.num {
+    text-align: right;
+  }
+
+  .table td.actions {
+    justify-content: flex-end;
+    padding: 10px 14px 12px;
+    background: var(--surface-2);
+    border-bottom: none;
+  }
+
+  .table td.actions .btn {
+    flex: 1;
+    margin-left: 0;
+  }
+
+  .table td.actions .btn + .btn {
+    margin-left: 6px;
+  }
+
+  .table td.empty {
+    justify-content: center;
+    padding: 30px;
+    background: var(--surface);
+    border-radius: var(--radius);
+  }
+
+  .table tbody tr:hover td {
+    background: inherit;
+  }
+
+  .categories-admin {
+    margin-top: 6px;
+  }
+
+  .modal {
+    padding: 20px 16px;
+  }
+}
+
+/* ---------- Installed app (iOS/Android home screen): respect the notch ---------- */
+
+@media (display-mode: standalone) {
+  .appbar {
+    height: calc(var(--appbar-h) + env(safe-area-inset-top));
+    padding-top: env(safe-area-inset-top);
+  }
+
+  .login-card {
+    margin-top: env(safe-area-inset-top);
+  }
+}
+
+.form-grid .checkbox {
+  flex-direction: row;
+  align-items: center;
+}
+
+.modal {
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
 }

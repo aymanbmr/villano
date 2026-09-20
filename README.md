@@ -90,6 +90,17 @@ curl -F "image=@photo.jpg" http://localhost:3000/api/products/1/image
 
 (un écran d'administration des produits est prévu dans une prochaine étape)
 
+## Utilisation sur téléphone / tablette (iOS et Android)
+
+L'application est une **PWA** : elle s'installe sur l'écran d'accueil et se lance en plein écran comme une app native, sans App Store.
+
+1. Le téléphone et le PC doivent être sur le **même Wi-Fi**. Trouver l'IP du PC (`ipconfig` → Adresse IPv4, ex. `192.168.1.2`).
+2. Sur le téléphone, ouvrir `http://<IP-du-PC>:5173` dans **Safari** (iPhone) ou **Chrome** (Android).
+3. **iPhone** : bouton Partager → « Sur l'écran d'accueil ». **Android** : menu ⋮ → « Installer l'application ».
+4. Lancer « Villano » depuis l'écran d'accueil : caisse et admin (selon le rôle) sont adaptés au format téléphone.
+
+En production, servir l'app en **HTTPS** (certificat) pour que l'installation soit proposée automatiquement et que le mode hors-ligne soit possible.
+
 ## Impression des tickets
 
 Trois tickets, formatés pour une imprimante thermique 80 mm et envoyés via la

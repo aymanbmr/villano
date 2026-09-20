@@ -17,7 +17,7 @@ export function AdminPage({ section }: { section: AdminSection }) {
             <UserMenu />
             <button type="button" className="btn btn-primary btn-sm" onClick={() => navigate('caisse')}>
               <Icon name="back" size={16} />
-              <span>Caisse</span>
+              <span className="hide-sm">Caisse</span>
             </button>
           </>
         }

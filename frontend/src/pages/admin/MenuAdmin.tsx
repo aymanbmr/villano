@@ -134,9 +134,9 @@ export function MenuAdmin() {
                       </div>
                     </div>
                   </td>
-                  <td>{p.category ? `${p.category.icon ?? ''} ${p.category.name}`.trim() : <span className="muted">—</span>}</td>
-                  <td className="num">{formatPrice(p.price)}</td>
-                  <td className="num">
+                  <td data-label="Catégorie">{p.category ? `${p.category.icon ?? ''} ${p.category.name}`.trim() : <span className="muted">—</span>}</td>
+                  <td className="num" data-label="Prix">{formatPrice(p.price)}</td>
+                  <td className="num" data-label="Stock">
                     <button
                       type="button"
                       className={`stock-btn${out ? ' is-out' : low ? ' is-low' : ''}`}
@@ -146,7 +146,7 @@ export function MenuAdmin() {
                       {p.stock}
                     </button>
                   </td>
-                  <td>
+                  <td data-label="Statut">
                     {p.isAvailable ? (
                       <span className="status status-on">Visible</span>
                     ) : (

@@ -11,12 +11,12 @@ export function UserMenu({ showAdminLink = false }: { showAdminLink?: boolean })
       {showAdminLink && isAdmin(session.user) && (
         <button type="button" className="btn btn-bar" onClick={() => navigate('admin/menu')}>
           <Icon name="settings" size={16} />
-          <span>Admin</span>
+          <span className="hide-sm">Admin</span>
         </button>
       )}
       <span className="user-name" title={session.user.role}>
         <Icon name="user" size={16} />
-        <span>{session.user.name}</span>
+        <span className="hide-sm">{session.user.name}</span>
       </span>
       <button type="button" className="btn btn-bar" onClick={logout} title="Se déconnecter">
         <Icon name="logout" size={16} />

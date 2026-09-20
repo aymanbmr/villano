@@ -145,15 +145,15 @@ export function EmployeesAdmin() {
                   </div>
                 </div>
               </td>
-              <td>
+              <td data-label="Poste">
                 <span className={`role-badge role-${e.role}`}>{EMPLOYEE_ROLES[e.role]}</span>
               </td>
-              <td>{e.phone ?? <span className="muted">—</span>}</td>
-              <td className="num">
+              <td data-label="Téléphone">{e.phone ?? <span className="muted">—</span>}</td>
+              <td className="num" data-label="Salaire">
                 {e.salary != null ? formatPrice(e.salary) : <span className="muted">—</span>}
               </td>
-              <td>{e.hireDate ? formatDate(e.hireDate) : <span className="muted">—</span>}</td>
-              <td>
+              <td data-label="Embauché le">{e.hireDate ? formatDate(e.hireDate) : <span className="muted">—</span>}</td>
+              <td data-label="Statut">
                 {e.isActive ? (
                   <span className="status status-on">Actif</span>
                 ) : (
