@@ -18,6 +18,9 @@ import { OpenOrders } from '../components/OpenOrders';
 import { OrderSuccessModal } from '../components/OrderSuccessModal';
 import { PrintTicket, type TicketKind } from '../components/PrintTicket';
 import { usePrint } from '../usePrint';
+import { AppBar } from '../components/AppBar';
+import { UserMenu } from '../components/UserMenu';
+import { Icon } from '../components/Icon';
 
 type View = 'new' | 'open';
 type MobilePanel = 'menu' | 'cart';
@@ -213,6 +216,7 @@ export function CaissePage() {
   return (
     <>
       <div className={`pos show-${mobilePanel}`}>
+        <AppBar actions={<UserMenu showAdminLink />} />
         {loadError ? (
           <div className="load-error">
             <p>{loadError}</p>
@@ -285,7 +289,10 @@ export function CaissePage() {
 
         {mobilePanel === 'menu' && cart.count > 0 && (
           <button type="button" className="mobile-cart-bar" onClick={openCart}>
-            <span>🛒 {cart.count} article{cart.count > 1 ? 's' : ''}</span>
+            <span className="row-icon">
+              <Icon name="cart" size={18} />
+              {cart.count} article{cart.count > 1 ? 's' : ''}
+            </span>
             <span>{formatPrice(cart.subtotal)}</span>
           </button>
         )}
@@ -296,7 +303,9 @@ export function CaissePage() {
             className={mobilePanel === 'menu' ? 'is-active' : ''}
             onClick={() => setMobilePanel('menu')}
           >
-            <span className="nav-icon">🍽</span>
+            <span className="nav-icon">
+              <Icon name="grid" size={22} />
+            </span>
             Menu
           </button>
           <button
@@ -304,7 +313,9 @@ export function CaissePage() {
             className={mobilePanel === 'cart' ? 'is-active' : ''}
             onClick={() => setMobilePanel('cart')}
           >
-            <span className="nav-icon">🧾</span>
+            <span className="nav-icon">
+              <Icon name="receipt" size={22} />
+            </span>
             Commande
             {(view === 'new' ? cart.count : pendingOrders.length) > 0 && (
               <span className="pill pill-warn">

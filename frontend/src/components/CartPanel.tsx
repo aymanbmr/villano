@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { formatPrice, orderLabel, type CreateOrderPayload, type Order, type OrderType } from '../api';
 import type { CartLine } from '../useCart';
+import { Icon } from './Icon';
 
 interface Props {
   lines: CartLine[];
@@ -111,8 +112,8 @@ export function CartPanel({
               </div>
             </div>
             <div className="qty">
-              <button type="button" onClick={() => onSetQuantity(product.id, quantity - 1)}>
-                −
+              <button type="button" onClick={() => onSetQuantity(product.id, quantity - 1)} aria-label="Moins">
+                <Icon name="minus" size={14} />
               </button>
               <span>{quantity}</span>
               <button
@@ -120,8 +121,9 @@ export function CartPanel({
                 onClick={() => onSetQuantity(product.id, quantity + 1)}
                 disabled={quantity >= product.stock}
                 title={quantity >= product.stock ? 'Stock maximum atteint' : undefined}
+                aria-label="Plus"
               >
-                +
+                <Icon name="plus" size={14} />
               </button>
             </div>
             <div className="cart-line-total">{formatPrice(product.price * quantity)}</div>
@@ -131,7 +133,7 @@ export function CartPanel({
               onClick={() => onRemove(product.id)}
               aria-label="Retirer"
             >
-              ×
+              <Icon name="x" size={16} />
             </button>
           </li>
         ))}
@@ -158,6 +160,7 @@ export function CartPanel({
             checked={autoPrintKitchen}
             onChange={(e) => onToggleAutoPrint(e.target.checked)}
           />
+          <Icon name="printer" size={14} />
           Imprimer le bon de cuisine à l’envoi
         </label>
 

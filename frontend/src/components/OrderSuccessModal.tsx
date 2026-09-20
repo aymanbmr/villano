@@ -1,4 +1,5 @@
 import { formatPrice, orderLabel, type Order } from '../api';
+import { Icon } from './Icon';
 
 interface Props {
   order: Order;
@@ -10,7 +11,9 @@ export function OrderSuccessModal({ order, onClose, onPrint }: Props) {
   return (
     <div className="modal-backdrop" role="dialog" aria-modal="true">
       <div className="modal">
-        <div className="modal-check">✓</div>
+        <div className="modal-check">
+          <Icon name="check" size={30} />
+        </div>
         <h2>Commande encaissée</h2>
         <p className="ticket">
           Ticket n° {order.ticketNumber}
@@ -53,7 +56,7 @@ export function OrderSuccessModal({ order, onClose, onPrint }: Props) {
 
         <div className="modal-actions">
           <button type="button" className="btn btn-ghost" onClick={onPrint}>
-            🖨 Imprimer le ticket
+            <Icon name="printer" size={16} /> Imprimer
           </button>
           <button type="button" className="btn btn-primary" onClick={onClose} autoFocus>
             Nouvelle commande

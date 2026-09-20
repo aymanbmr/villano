@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { ApiError, authApi } from '../api';
 import { setSession } from '../auth';
 import { RESTAURANT } from '../config';
+import { Icon } from '../components/Icon';
 
 type Mode = 'pin' | 'password';
 
@@ -70,14 +71,14 @@ export function LoginPage() {
             className={mode === 'pin' ? 'is-active' : ''}
             onClick={() => setMode('pin')}
           >
-            🔢 Code PIN employé
+            <Icon name="keypad" size={16} /> Code PIN
           </button>
           <button
             type="button"
             className={mode === 'password' ? 'is-active' : ''}
             onClick={() => setMode('password')}
           >
-            🔑 Mot de passe admin
+            <Icon name="lock" size={16} /> Mot de passe admin
           </button>
         </div>
 
@@ -98,7 +99,7 @@ export function LoginPage() {
                   onClick={() => press(k)}
                   disabled={busy}
                 >
-                  {k}
+                  {k === '⌫' ? <Icon name="backspace" size={22} /> : k}
                 </button>
               ))}
             </div>

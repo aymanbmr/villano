@@ -7,6 +7,7 @@ import {
   type UpdateOrderPayload,
 } from '../api';
 import { PaymentForm } from './PaymentForm';
+import { Icon } from './Icon';
 import type { TicketKind } from './PrintTicket';
 
 interface Props {
@@ -188,12 +189,12 @@ function OrderDetail({
               </div>
             </div>
             <div className="qty">
-              <button type="button" disabled={busy} onClick={() => changeQty(i.id, i.quantity - 1)}>
-                −
+              <button type="button" disabled={busy} onClick={() => changeQty(i.id, i.quantity - 1)} aria-label="Moins">
+                <Icon name="minus" size={14} />
               </button>
               <span>{i.quantity}</span>
-              <button type="button" disabled={busy} onClick={() => changeQty(i.id, i.quantity + 1)}>
-                +
+              <button type="button" disabled={busy} onClick={() => changeQty(i.id, i.quantity + 1)} aria-label="Plus">
+                <Icon name="plus" size={14} />
               </button>
             </div>
             <div className="cart-line-total">{formatPrice(i.lineTotal)}</div>
@@ -204,7 +205,7 @@ function OrderDetail({
               onClick={() => changeQty(i.id, 0)}
               aria-label="Retirer"
             >
-              ×
+              <Icon name="x" size={16} />
             </button>
           </li>
         ))}
@@ -221,15 +222,15 @@ function OrderDetail({
 
       <div className="open-order-actions">
         <button type="button" className="btn btn-ghost" onClick={() => onPrint(order, 'kitchen')}>
-          🖨 Cuisine
+          <Icon name="printer" size={15} /> Cuisine
         </button>
         <button type="button" className="btn btn-ghost" onClick={() => onPrint(order, 'bill')}>
-          🖨 Addition
+          <Icon name="receipt" size={15} /> Addition
         </button>
       </div>
       <div className="open-order-actions">
         <button type="button" className="btn btn-ghost" disabled={busy} onClick={() => onAddItems(order)}>
-          + Ajouter des articles
+          <Icon name="plus" size={15} /> Articles
         </button>
         <button
           type="button"
@@ -241,7 +242,7 @@ function OrderDetail({
             }
           }}
         >
-          🗑 Supprimer
+          <Icon name="trash" size={15} /> Supprimer
         </button>
       </div>
 

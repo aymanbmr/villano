@@ -41,19 +41,19 @@ export function ProductCard({ product, inCart, onAdd }: Props) {
         ) : (
           <div className="product-image-placeholder">{product.name.charAt(0)}</div>
         )}
-        {outOfStock ? (
-          <span className="badge badge-out">Rupture</span>
-        ) : (
-          <span className={`badge ${lowStock ? 'badge-low' : 'badge-stock'}`}>
-            Stock : {remaining}
-          </span>
-        )}
-        {inCart > 0 && <span className="badge badge-cart">{inCart} au panier</span>}
+        {outOfStock && <span className="product-out">Rupture</span>}
+        {inCart > 0 && <span className="product-count">{inCart}</span>}
       </div>
       <div className="product-body">
-        <div className="product-name">{product.name}</div>
+        <div className="product-row">
+          <div className="product-name">{product.name}</div>
+          <div className="product-price">{formatPrice(product.price)}</div>
+        </div>
         {product.description && <div className="product-desc">{product.description}</div>}
-        <div className="product-price">{formatPrice(product.price)}</div>
+        <div className={`product-stock${outOfStock ? ' is-out' : lowStock ? ' is-low' : ''}`}>
+          <span className="dot" />
+          {outOfStock ? 'Épuisé' : `${remaining} en stock`}
+        </div>
       </div>
     </div>
   );

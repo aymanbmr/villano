@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { formatPrice, type PaymentMethod, type PayOrderPayload } from '../api';
+import { Icon } from './Icon';
 
 interface Props {
   subtotal: number;
@@ -61,14 +62,14 @@ export function PaymentForm({ subtotal, submitting, error, onSubmit }: Props) {
           className={paymentMethod === 'cash' ? 'is-active' : ''}
           onClick={() => setPaymentMethod('cash')}
         >
-          💵 Espèces
+          <Icon name="cash" size={16} /> Espèces
         </button>
         <button
           type="button"
           className={paymentMethod === 'card' ? 'is-active' : ''}
           onClick={() => setPaymentMethod('card')}
         >
-          💳 Carte
+          <Icon name="card" size={16} /> Carte
         </button>
       </div>
 

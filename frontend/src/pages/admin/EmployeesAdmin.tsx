@@ -8,6 +8,7 @@ import {
   type EmployeeRole,
 } from '../../api';
 import { EmployeeForm } from './EmployeeForm';
+import { Icon } from '../../components/Icon';
 
 const fail = (e: unknown) => (e instanceof ApiError ? e.message : 'Erreur réseau');
 
@@ -102,7 +103,7 @@ export function EmployeesAdmin() {
         </label>
         <div className="toolbar-spacer" />
         <button type="button" className="btn btn-primary" onClick={() => setEditing('new')}>
-          + Nouvel employé
+          <Icon name="plus" size={16} /> Nouvel employé
         </button>
       </div>
 
@@ -161,7 +162,7 @@ export function EmployeesAdmin() {
               </td>
               <td className="actions">
                 <button type="button" className="btn btn-ghost btn-sm" onClick={() => setEditing(e)}>
-                  Modifier
+                  <Icon name="edit" size={14} /> Modifier
                 </button>
                 <button type="button" className="btn btn-ghost btn-sm" onClick={() => toggleActive(e)}>
                   {e.isActive ? 'Désactiver' : 'Réactiver'}
@@ -170,8 +171,9 @@ export function EmployeesAdmin() {
                   type="button"
                   className="btn btn-ghost btn-sm btn-danger"
                   onClick={() => remove(e)}
+                  title="Supprimer"
                 >
-                  Supprimer
+                  <Icon name="trash" size={14} />
                 </button>
               </td>
             </tr>

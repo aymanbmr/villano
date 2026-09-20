@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { adminApi, api, ApiError, formatPrice, type Category, type Product } from '../../api';
 import { ProductForm } from './ProductForm';
 import { CategoriesAdmin } from './CategoriesAdmin';
+import { Icon } from '../../components/Icon';
 
 const fail = (e: unknown) => (e instanceof ApiError ? e.message : 'Erreur réseau');
 
@@ -86,9 +87,13 @@ export function MenuAdmin() {
             ))}
           </select>
           <div className="toolbar-spacer" />
-          {lowStock > 0 && <span className="pill pill-warn pill-lg">⚠ {lowStock} en stock bas</span>}
+          {lowStock > 0 && (
+            <span className="pill pill-warn pill-lg">
+              <Icon name="alert" size={14} /> {lowStock} en stock bas
+            </span>
+          )}
           <button type="button" className="btn btn-primary" onClick={() => setEditing('new')}>
-            + Nouveau produit
+            <Icon name="plus" size={16} /> Nouveau produit
           </button>
         </div>
 
@@ -150,13 +155,13 @@ export function MenuAdmin() {
                   </td>
                   <td className="actions">
                     <button type="button" className="btn btn-ghost btn-sm" onClick={() => setEditing(p)}>
-                      Modifier
+                      <Icon name="edit" size={14} /> Modifier
                     </button>
                     <button type="button" className="btn btn-ghost btn-sm" onClick={() => toggleAvailable(p)}>
-                      {p.isAvailable ? 'Masquer' : 'Afficher'}
+                      <Icon name={p.isAvailable ? 'eyeOff' : 'eye'} size={14} /> {p.isAvailable ? 'Masquer' : 'Afficher'}
                     </button>
-                    <button type="button" className="btn btn-ghost btn-sm btn-danger" onClick={() => remove(p)}>
-                      Supprimer
+                    <button type="button" className="btn btn-ghost btn-sm btn-danger" onClick={() => remove(p)} title="Supprimer">
+                      <Icon name="trash" size={14} />
                     </button>
                   </td>
                 </tr>

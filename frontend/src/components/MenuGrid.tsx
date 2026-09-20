@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import type { Category, Product } from '../api';
 import { ProductCard } from './ProductCard';
-import { UserMenu } from './UserMenu';
+import { Icon } from './Icon';
 
 interface Props {
   categories: Category[];
@@ -28,38 +28,38 @@ export function MenuGrid({ categories, products, quantityOf, onAdd }: Props) {
 
   return (
     <section className="menu">
-      <header className="menu-header">
-        <h1 className="brand">Villano</h1>
-        <input
-          type="search"
-          className="search"
-          placeholder="Rechercher un produit…"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-        <UserMenu showAdminLink />
-      </header>
-
-      <nav className="category-tabs">
-        <button
-          type="button"
-          className={`tab${categoryId === ALL ? ' is-active' : ''}`}
-          onClick={() => setCategoryId(ALL)}
-        >
-          Tout
-        </button>
-        {categories.map((c) => (
+      <div className="menu-toolbar">
+        <label className="search-box">
+          <Icon name="search" size={16} />
+          <input
+            type="search"
+            className="search"
+            placeholder="Rechercher un produit…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </label>
+        <nav className="category-tabs">
           <button
-            key={c.id}
             type="button"
-            className={`tab${categoryId === c.id ? ' is-active' : ''}`}
-            onClick={() => setCategoryId(c.id)}
+            className={`tab${categoryId === ALL ? ' is-active' : ''}`}
+            onClick={() => setCategoryId(ALL)}
           >
-            {c.icon && <span className="tab-icon">{c.icon}</span>}
-            {c.name}
+            Tout
           </button>
-        ))}
-      </nav>
+          {categories.map((c) => (
+            <button
+              key={c.id}
+              type="button"
+              className={`tab${categoryId === c.id ? ' is-active' : ''}`}
+              onClick={() => setCategoryId(c.id)}
+            >
+              {c.icon && <span className="tab-icon">{c.icon}</span>}
+              {c.name}
+            </button>
+          ))}
+        </nav>
+      </div>
 
       {visible.length === 0 ? (
         <p className="empty">Aucun produit.</p>
