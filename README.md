@@ -106,6 +106,21 @@ curl -F "image=@photo.jpg" http://localhost:3000/api/products/1/image
 
 (un écran d'administration des produits est prévu dans une prochaine étape)
 
+## Application de bureau (Windows)
+
+Un raccourci **Villano** sur le Bureau ouvre l'app dans sa propre fenêtre, sans
+barre d'adresse ni onglets, et démarre le serveur si besoin (une seule fenêtre
+« Villano - serveur » réduite dans la barre des tâches : la fermer arrête l'app).
+
+```powershell
+npm run build                                              # après chaque mise à jour du code
+powershell -ExecutionPolicy Bypass -File desktopcreate-shortcut.ps1   # crée le raccourci (une fois)
+```
+
+En mode bureau, le serveur sert aussi l'app compilée : tout tourne sur
+http://localhost:3000 (les autres postes/téléphones du Wi-Fi utilisent
+`http://<IP-du-PC>:3000`). `npm run dev` reste le mode développement.
+
 ## Utilisation sur téléphone / tablette (iOS et Android)
 
 L'application est une **PWA** : elle s'installe sur l'écran d'accueil et se lance en plein écran comme une app native, sans App Store.

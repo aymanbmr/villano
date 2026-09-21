@@ -9,7 +9,8 @@ import { SeedModule } from './seed/seed.module.js';
 import { EmployeesModule } from './employees/employees.module.js';
 import { AuthModule } from './auth/auth.module.js';
 import { StatsModule } from './stats/stats.module.js';
-import { DATABASE_FILE, UPLOADS_DIR } from './config.js';
+import { existsSync } from 'node:fs';
+import { DATABASE_FILE, FRONTEND_DIST, UPLOADS_DIR } from './config.js';
 
 @Module({
   imports: [
@@ -27,6 +28,16 @@ import { DATABASE_FILE, UPLOADS_DIR } from './config.js';
       rootPath: UPLOADS_DIR,
       serveRoot: '/uploads',
     }),
+    // The built React app at / (only if it has been built)
+    ...(existsSync(FRONTEND_DIST)
+      ? [
+          ServeStaticModule.forRoot({
+            rootPath: FRONTEND_DIST,
+            serveRoot: '/',
+            exclude: ['/api/{*path}', '/uploads/{*path}'],
+          }),
+        ]
+      : []),
     CategoriesModule,
     ProductsModule,
     OrdersModule,
