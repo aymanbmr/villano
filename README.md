@@ -106,6 +106,15 @@ curl -F "image=@photo.jpg" http://localhost:3000/api/products/1/image
 
 (un écran d'administration des produits est prévu dans une prochaine étape)
 
+## Installation sur le PC de la caisse (Windows)
+
+1. Installer **Node.js LTS** : https://nodejs.org (Suivant, Suivant…).
+2. Récupérer le projet sur le PC : `git clone https://github.com/aymanbmr/villano.git` ou GitHub → **Code → Download ZIP** puis décompresser.
+3. Double-cliquer sur **`desktopinstall.cmd`** : installe, compile et crée le raccourci **Villano** sur le Bureau.
+4. Double-cliquer sur **Villano**. Premier accès avec le mot de passe admin (`backend.env`), puis créer les employés et leurs PIN.
+
+Mise à jour : `git pull` (ou nouveau ZIP) puis relancer `desktopinstall.cmd`.
+
 ## Application de bureau (Windows)
 
 Un raccourci **Villano** sur le Bureau ouvre l'app dans sa propre fenêtre, sans
