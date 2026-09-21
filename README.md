@@ -34,6 +34,18 @@ La session dure `JWT_EXPIRES_IN` (14 h par défaut), bouton **Déconnexion** en 
 - `#/admin/menu` — produits (nom, catégorie, prix, stock, photo, visible/masqué) et catégories
 - `#/admin/employes` — employés (serveur, caissier, barman, cuisinier, femme de ménage, manager), salaire, téléphone, code PIN, actif/parti
 
+## Données de démonstration
+
+Pour voir le tableau de bord avec un mois d'activité fictive :
+
+```bash
+cd backend
+npm run seed:demo             # ajoute ~850 commandes sur 31 jours (note « Démo »)
+npm run seed:demo -- --clear  # les retire
+```
+
+Le stock n'est pas modifié par ces commandes.
+
 ## API (préfixe `/api`)
 
 Toutes les routes exigent `Authorization: Bearer <token>` sauf `POST /auth/login` ; les routes d'écriture produits/catégories et tout `/employees` exigent le rôle manager ou admin.
