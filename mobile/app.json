@@ -9,7 +9,7 @@
     "userInterfaceStyle": "light",
     "backgroundColor": "#1c1917",
     "extra": {
-      "appUrl": "http://192.168.1.2:5173",
+      "appUrl": "http://192.168.1.32:3000",
       "eas": {
         "projectId": "a7e032e8-83f1-4957-af05-3a08e7c91245"
       }
