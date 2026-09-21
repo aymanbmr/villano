@@ -29,6 +29,8 @@ La session dure `JWT_EXPIRES_IN` (14 h par défaut), bouton **Déconnexion** en 
 ## Pages
 
 - `#/caisse` — prise de commande, commandes en cours, encaissement, tickets
+- `#/admin/dashboard` — tableau de bord : chiffre d'affaires, commandes, ticket moyen, articles vendus (avec variation vs période précédente), CA par jour et par heure, espèces/carte, meilleures ventes, ventes par catégorie, produits sans vente
+- `#/admin/ventes` — détail de chaque commande encaissée ou annulée (lignes, paiement, remise), recherche, réimpression du ticket, annulation
 - `#/admin/menu` — produits (nom, catégorie, prix, stock, photo, visible/masqué) et catégories
 - `#/admin/employes` — employés (serveur, caissier, barman, cuisinier, femme de ménage, manager), salaire, téléphone, code PIN, actif/parti
 
@@ -40,6 +42,8 @@ Toutes les routes exigent `Authorization: Bearer <token>` sauf `POST /auth/login
 | --- | --- | --- |
 | POST | /auth/login | `{ pin }` ou `{ password }` → `{ token, user }` |
 | GET | /auth/me | Utilisateur connecté |
+| GET | /stats?from=AAAA-MM-JJ&to=AAAA-MM-JJ | Statistiques de vente de la période (admin) |
+| GET | /orders?status=paid&from=&to= | Historique filtré par dates |
 
 | Méthode | Route                   | Description                                  |
 | ------- | ----------------------- | -------------------------------------------- |

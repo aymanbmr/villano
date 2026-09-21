@@ -4,7 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, EntityManager, Repository } from 'typeorm';
+import { Between, DataSource, EntityManager, FindOptionsWhere, Repository } from 'typeorm';
 import { Product } from '../products/product.entity.js';
 import { Order, OrderItem, OrderStatus } from './order.entity.js';
 import {
@@ -18,6 +18,11 @@ import {
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
 
+const localDay = (s: string) => {
+  const [y, m, d] = s.split('-').map(Number);
+  return new Date(y, (m || 1) - 1, d || 1);
+};
+
 // Error messages are shown as-is to the cashier, hence French
 const TABLE_REQUIRED = 'Le numéro de table est obligatoire pour une commande sur place';
 
@@ -29,11 +34,20 @@ export class OrdersService {
     private readonly dataSource: DataSource,
   ) {}
 
-  findAll(status?: OrderStatus, limit = 50) {
+  // from/to are local calendar days (YYYY-MM-DD), inclusive
+  findAll(status?: OrderStatus, limit = 50, from?: string, to?: string) {
+    const where: FindOptionsWhere<Order> = {};
+    if (status) where.status = status;
+    if (from || to) {
+      const start = from ? localDay(from) : new Date(2000, 0, 1);
+      const end = to ? localDay(to) : new Date();
+      end.setHours(23, 59, 59, 999);
+      where.createdAt = Between(start, end);
+    }
     return this.orders.find({
-      where: status ? { status } : {},
+      where,
       order: { createdAt: status === 'pending' ? 'ASC' : 'DESC' },
-      take: limit,
+      take: Math.min(limit, 500),
     });
   }
 

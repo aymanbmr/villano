@@ -2276,3 +2276,509 @@ select.input {
   max-height: calc(100dvh - 32px);
   overflow-y: auto;
 }
+
+/* ==========================================================================
+   Dashboard & sales history
+   ========================================================================== */
+
+:root {
+  /* Chart colors — validated (dataviz): amber single-series / cash, blue = card */
+  --chart-1: #b45309;
+  --chart-cash: #b45309;
+  --chart-card: #2a78d6;
+  --chart-grid: #ebebeb;
+  --chart-axis: #d4d4d8;
+}
+
+.page-title {
+  margin: 0 0 2px;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.2px;
+}
+
+.dash-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+
+.range-picker {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.chips {
+  display: flex;
+  gap: 4px;
+  padding: 3px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.chip {
+  padding: 6px 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+  background: none;
+  border: none;
+  border-radius: 4px;
+}
+
+.chip:hover {
+  color: var(--text);
+}
+
+.chip.is-active {
+  color: #fff;
+  background: var(--dark);
+}
+
+.range-dates {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.input-date {
+  width: auto;
+  padding: 6px 10px;
+  font-size: 13px;
+}
+
+/* Stat tiles */
+
+.stat-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.stat-tile {
+  padding: 16px 18px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-xs);
+}
+
+.stat-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.stat-value {
+  margin-top: 4px;
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.stat-delta {
+  margin-top: 6px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.stat-delta.is-up {
+  color: var(--success);
+}
+
+.stat-delta.is-down {
+  color: var(--danger);
+}
+
+.stat-delta.is-flat {
+  color: var(--muted);
+}
+
+.stat-hint {
+  margin-top: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--muted-2);
+}
+
+.stat-delta .stat-hint {
+  display: inline;
+  margin: 0;
+}
+
+/* Dashboard grid */
+
+.dash-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.dash-grid .card {
+  min-width: 0;
+}
+
+.span-2 {
+  grid-column: span 2;
+}
+
+.card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.card-head h3 {
+  margin: 0;
+}
+
+.dash-foot {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+
+/* SVG charts */
+
+.chart {
+  position: relative;
+  width: 100%;
+}
+
+.chart svg {
+  display: block;
+  overflow: visible;
+}
+
+.chart-grid {
+  stroke: var(--chart-grid);
+  stroke-width: 1;
+}
+
+.chart-axis {
+  stroke: var(--chart-axis);
+  stroke-width: 1;
+}
+
+.chart-crosshair {
+  stroke: var(--chart-axis);
+  stroke-width: 1;
+}
+
+.chart-tick {
+  font-size: 11px;
+  fill: var(--muted);
+}
+
+.chart-tooltip {
+  position: absolute;
+  min-width: 120px;
+  padding: 8px 10px;
+  background: var(--dark);
+  color: #fff;
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-md);
+  pointer-events: none;
+  z-index: 2;
+}
+
+.chart-tooltip-title {
+  font-size: 11px;
+  color: var(--dark-muted);
+}
+
+.chart-tooltip-value {
+  font-size: 15px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.chart-tooltip-detail {
+  font-size: 11px;
+  color: var(--dark-muted);
+}
+
+.chart-empty {
+  margin: 0;
+  padding: 24px 0;
+  font-size: 13px;
+  color: var(--muted);
+  text-align: center;
+}
+
+/* Split bar (cash / card) + legend + facts */
+
+.split-bar {
+  display: flex;
+  gap: 2px;
+  height: 14px;
+  margin: 4px 0 10px;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.split-seg {
+  height: 100%;
+}
+
+.split-seg.is-cash {
+  background: var(--chart-cash);
+}
+
+.split-seg.is-card {
+  background: var(--chart-card);
+}
+
+.split-seg.is-empty {
+  width: 100%;
+  background: var(--surface-3);
+}
+
+.legend {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.legend li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  font-size: 13px;
+  border-bottom: 1px solid var(--border);
+}
+
+.legend li b {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+}
+
+.legend li .muted {
+  min-width: 34px;
+  text-align: right;
+}
+
+.swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+}
+
+.swatch.is-cash {
+  background: var(--chart-cash);
+}
+
+.swatch.is-card {
+  background: var(--chart-card);
+}
+
+.facts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 12px;
+  margin: 14px 0 0;
+}
+
+.facts div {
+  padding: 8px 10px;
+  background: var(--surface-2);
+  border-radius: var(--radius-sm);
+}
+
+.facts dt {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.facts dd {
+  margin: 2px 0 0;
+  font-size: 16px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Ranked horizontal bars */
+
+.hbars {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.hbar {
+  padding: 7px 0;
+}
+
+.hbar-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 4px;
+  font-size: 13px;
+}
+
+.hbar-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+.hbar-rank {
+  display: inline-block;
+  min-width: 18px;
+  margin-right: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.hbar-sub {
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.hbar-value {
+  flex-shrink: 0;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.hbar-track {
+  height: 8px;
+  background: var(--surface-3);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.hbar-fill {
+  height: 100%;
+  border-radius: 0 4px 4px 0;
+  min-width: 2px;
+}
+
+.unsold {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 6px 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.unsold li {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 0;
+  font-size: 13px;
+  border-bottom: 1px solid var(--border);
+}
+
+.segmented-sm {
+  margin: 0;
+}
+
+.segmented-sm button {
+  padding: 5px 10px;
+  font-size: 12px;
+}
+
+.segmented-inline {
+  width: auto;
+}
+
+/* Sales history */
+
+.ticket-link {
+  font-variant-numeric: tabular-nums;
+}
+
+.order-lines {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  min-width: 220px;
+}
+
+.order-lines li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 2px 0;
+  font-size: 13px;
+}
+
+.table tr.is-open td {
+  background: var(--surface-2);
+  vertical-align: top;
+}
+
+.status.is-cash-text {
+  color: var(--chart-cash);
+  background: var(--warning-soft);
+}
+
+.status.is-card-text {
+  color: var(--chart-card);
+  background: var(--info-soft);
+}
+
+@media (max-width: 1000px) {
+  .stat-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .dash-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .span-2 {
+    grid-column: auto;
+  }
+}
+
+@media (max-width: 860px) {
+  .range-picker {
+    width: 100%;
+  }
+
+  .chips {
+    width: 100%;
+    overflow-x: auto;
+  }
+
+  .chip {
+    flex: 1;
+    padding: 8px 6px;
+    white-space: nowrap;
+  }
+
+  .stat-value {
+    font-size: 22px;
+  }
+
+  .table td[data-label='Articles'] {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .order-lines {
+    width: 100%;
+    min-width: 0;
+  }
+}

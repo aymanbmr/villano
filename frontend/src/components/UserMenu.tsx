@@ -9,7 +9,7 @@ export function UserMenu({ showAdminLink = false }: { showAdminLink?: boolean })
   return (
     <div className="user-menu">
       {showAdminLink && isAdmin(session.user) && (
-        <button type="button" className="btn btn-bar" onClick={() => navigate('admin/menu')}>
+        <button type="button" className="btn btn-bar" onClick={() => navigate('admin/dashboard')}>
           <Icon name="settings" size={16} />
           <span className="hide-sm">Admin</span>
         </button>

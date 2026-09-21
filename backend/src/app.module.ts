@@ -8,6 +8,7 @@ import { OrdersModule } from './orders/orders.module.js';
 import { SeedModule } from './seed/seed.module.js';
 import { EmployeesModule } from './employees/employees.module.js';
 import { AuthModule } from './auth/auth.module.js';
+import { StatsModule } from './stats/stats.module.js';
 import { DATABASE_FILE, UPLOADS_DIR } from './config.js';
 
 @Module({
@@ -31,6 +32,7 @@ import { DATABASE_FILE, UPLOADS_DIR } from './config.js';
     OrdersModule,
     EmployeesModule,
     AuthModule,
+    StatsModule,
     SeedModule,
   ],
 })

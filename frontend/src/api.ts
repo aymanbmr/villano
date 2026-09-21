@@ -253,3 +253,42 @@ export const adminApi = {
   deleteEmployee: (id: number) =>
     request<{ deleted: boolean }>(`/employees/${id}`, { method: 'DELETE' }),
 };
+
+// ---------- Stats (dashboard) ----------
+
+export interface StatsTotals {
+  revenue: number;
+  orders: number;
+  items: number;
+  averageTicket: number;
+  discounts: number;
+  cash: number;
+  card: number;
+  dineIn: number;
+  takeaway: number;
+  cancelled: number;
+}
+
+export interface ProductStat {
+  productId: number | null;
+  name: string;
+  quantity: number;
+  revenue: number;
+}
+
+export interface Stats {
+  range: { from: string; to: string; days: number };
+  totals: StatsTotals;
+  previous: StatsTotals;
+  byDay: { day: string; revenue: number; orders: number }[];
+  byHour: { hour: number; revenue: number; orders: number }[];
+  bestSellers: { byQuantity: ProductStat[]; byRevenue: ProductStat[] };
+  byCategory: { name: string; quantity: number; revenue: number }[];
+  unsold: { productId: number; name: string; price: number; stock: number }[];
+}
+
+export const statsApi = {
+  summary: (from: string, to: string) => request<Stats>(`/stats?from=${from}&to=${to}`),
+  orders: (status: OrderStatus, from: string, to: string, limit = 200) =>
+    request<Order[]>(`/orders?status=${status}&from=${from}&to=${to}&limit=${limit}`),
+};

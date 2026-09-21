@@ -28,11 +28,16 @@ export class OrdersController {
 
   // GET /orders?status=pending
   @Get()
-  findAll(@Query('status') status?: string, @Query('limit') limit?: string) {
+  findAll(
+    @Query('status') status?: string,
+    @Query('limit') limit?: string,
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+  ) {
     if (status && !STATUSES.includes(status as OrderStatus)) {
       throw new BadRequestException(`status must be one of ${STATUSES.join(', ')}`);
     }
-    return this.orders.findAll(status as OrderStatus | undefined, limit ? Number(limit) : undefined);
+    return this.orders.findAll(status as OrderStatus | undefined, limit ? Number(limit) : undefined, from, to);
   }
 
   @Get(':id')

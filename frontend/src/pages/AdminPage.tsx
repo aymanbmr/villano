@@ -1,11 +1,20 @@
-import { navigate } from '../router';
+import { navigate, type Route } from '../router';
 import { MenuAdmin } from './admin/MenuAdmin';
 import { EmployeesAdmin } from './admin/EmployeesAdmin';
+import { Dashboard } from './admin/Dashboard';
+import { SalesHistory } from './admin/SalesHistory';
 import { UserMenu } from '../components/UserMenu';
 import { AppBar } from '../components/AppBar';
-import { Icon } from '../components/Icon';
+import { Icon, type IconName } from '../components/Icon';
 
-export type AdminSection = 'menu' | 'employes';
+export type AdminSection = 'dashboard' | 'ventes' | 'menu' | 'employes';
+
+const NAV: { id: AdminSection; route: Route; label: string; icon: IconName }[] = [
+  { id: 'dashboard', route: 'admin/dashboard', label: 'Tableau de bord', icon: 'chart' },
+  { id: 'ventes', route: 'admin/ventes', label: 'Ventes', icon: 'list' },
+  { id: 'menu', route: 'admin/menu', label: 'Menu & stock', icon: 'grid' },
+  { id: 'employes', route: 'admin/employes', label: 'Employés', icon: 'users' },
+];
 
 export function AdminPage({ section }: { section: AdminSection }) {
   return (
@@ -23,26 +32,27 @@ export function AdminPage({ section }: { section: AdminSection }) {
         }
       >
         <nav className="admin-nav">
-          <button
-            type="button"
-            className={section === 'menu' ? 'is-active' : ''}
-            onClick={() => navigate('admin/menu')}
-          >
-            <Icon name="grid" size={16} />
-            <span>Menu &amp; stock</span>
-          </button>
-          <button
-            type="button"
-            className={section === 'employes' ? 'is-active' : ''}
-            onClick={() => navigate('admin/employes')}
-          >
-            <Icon name="users" size={16} />
-            <span>Employés</span>
-          </button>
+          {NAV.map((n) => (
+            <button
+              key={n.id}
+              type="button"
+              className={section === n.id ? 'is-active' : ''}
+              onClick={() => navigate(n.route)}
+              title={n.label}
+            >
+              <Icon name={n.icon} size={16} />
+              <span>{n.label}</span>
+            </button>
+          ))}
         </nav>
       </AppBar>
 
-      <main className="admin-main">{section === 'menu' ? <MenuAdmin /> : <EmployeesAdmin />}</main>
+      <main className="admin-main">
+        {section === 'dashboard' && <Dashboard />}
+        {section === 'ventes' && <SalesHistory />}
+        {section === 'menu' && <MenuAdmin />}
+        {section === 'employes' && <EmployeesAdmin />}
+      </main>
     </div>
   );
 }
