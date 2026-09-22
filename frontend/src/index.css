@@ -3424,3 +3424,72 @@ select.input {
 .category-list li {
   min-width: 0;
 }
+
+/* Category icons (SVG, never emoji) sit just before their label */
+.category-icon {
+  margin-right: 6px;
+  vertical-align: -3px;
+}
+
+.cell-with-icon {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.cell-with-icon .category-icon {
+  margin-right: 0;
+  color: var(--muted);
+}
+
+.icon-button {
+  width: 44px;
+  padding: 0;
+  flex-shrink: 0;
+  justify-content: center;
+}
+
+.muted-icon {
+  color: var(--muted);
+}
+
+/* Icon picker */
+
+.icon-picker {
+  width: min(520px, 100%);
+  text-align: left;
+}
+
+.icon-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.icon-choice {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  text-align: center;
+}
+
+.icon-choice:hover {
+  border-color: var(--border-strong);
+  color: var(--text);
+}
+
+.icon-choice.is-active {
+  color: var(--primary);
+  border-color: var(--primary);
+  box-shadow: var(--ring);
+}

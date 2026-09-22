@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import type { Category, Product } from '../api';
 import { ProductCard } from './ProductCard';
 import { Icon } from './Icon';
+import { CategoryIcon } from '../categoryIcons';
 
 interface Props {
   categories: Category[];
@@ -54,7 +55,7 @@ export function MenuGrid({ categories, products, quantityOf, onAdd }: Props) {
               className={`tab${categoryId === c.id ? ' is-active' : ''}`}
               onClick={() => setCategoryId(c.id)}
             >
-              {c.icon && <span className="tab-icon">{c.icon}</span>}
+              <CategoryIcon icon={c.icon} size={15} />
               {c.name}
             </button>
           ))}

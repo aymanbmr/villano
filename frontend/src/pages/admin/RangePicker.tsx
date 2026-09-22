@@ -1,4 +1,5 @@
 import { PRESETS, presetRange, type Preset } from './dateRange';
+import { Icon } from '../../components/Icon';
 
 export interface Range {
   from: string;
@@ -35,7 +36,7 @@ export function RangePicker({ value, onChange }: Props) {
           max={value.to}
           onChange={(e) => e.target.value && onChange({ ...value, from: e.target.value, preset: 'custom' })}
         />
-        <span className="muted">→</span>
+        <Icon name="arrowRight" size={14} className="icon muted-icon" />
         <input
           type="date"
           className="input input-date"

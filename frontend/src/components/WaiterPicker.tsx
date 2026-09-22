@@ -19,7 +19,7 @@ export function WaiterPicker({ staff, selectedId, onSelect, onClose }: Props) {
         </h2>
 
         {staff.length === 0 ? (
-          <p className="empty">Aucun employé actif. Ajoutez-en un dans Admin → Employés.</p>
+          <p className="empty">Aucun employé actif. Ajoutez-en un dans Admin, onglet Employés.</p>
         ) : (
           <ul className="staff-list">
             {staff.map((s) => {

@@ -80,7 +80,7 @@ export function Dashboard() {
           <h2 className="page-title">Tableau de bord</h2>
           {stats && (
             <div className="muted">
-              {stats.range.days === 1 ? fullDay(stats.range.from) : `${fullDay(stats.range.from)} → ${fullDay(stats.range.to)}`}
+              {stats.range.days === 1 ? fullDay(stats.range.from) : `${fullDay(stats.range.from)} au ${fullDay(stats.range.to)}`}
             </div>
           )}
         </div>
@@ -202,7 +202,7 @@ export function Dashboard() {
               ))}
             </ul>
           ) : (
-            <p className="chart-empty">Tous les produits visibles ont été vendus. 👍</p>
+            <p className="chart-empty">Tous les produits visibles ont été vendus.</p>
           )}
         </section>
       </div>

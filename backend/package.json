@@ -20,7 +20,8 @@
     "test:cov": "vitest run --coverage",
     "test:debug": "vitest --inspect-brk --no-file-parallelism",
     "test:e2e": "vitest run --config ./vitest.config.e2e.ts",
-    "seed:demo": "nest build && node dist/scripts/seed-demo.js"
+    "seed:demo": "nest build && node dist/scripts/seed-demo.js",
+    "fix:images": "nest build && node dist/scripts/rebuild-placeholders.js"
   },
   "dependencies": {
     "@nestjs/common": "^12.0.1",

@@ -3,6 +3,7 @@ import { adminApi, api, ApiError, formatPrice, type Category, type Product } fro
 import { ProductForm } from './ProductForm';
 import { CategoriesAdmin } from './CategoriesAdmin';
 import { Icon } from '../../components/Icon';
+import { CategoryIcon } from '../../categoryIcons';
 
 const fail = (e: unknown) => (e instanceof ApiError ? e.message : 'Erreur réseau');
 
@@ -134,7 +135,16 @@ export function MenuAdmin() {
                       </div>
                     </div>
                   </td>
-                  <td data-label="Catégorie">{p.category ? `${p.category.icon ?? ''} ${p.category.name}`.trim() : <span className="muted">—</span>}</td>
+                  <td data-label="Catégorie">
+                    {p.category ? (
+                      <span className="cell-with-icon">
+                        <CategoryIcon icon={p.category.icon} size={15} />
+                        {p.category.name}
+                      </span>
+                    ) : (
+                      <span className="muted">—</span>
+                    )}
+                  </td>
                   <td className="num" data-label="Prix">{formatPrice(p.price)}</td>
                   <td className="num" data-label="Stock">
                     <button

@@ -1,5 +1,8 @@
 import { useState } from 'react';
 import { adminApi, ApiError, type Category } from '../../api';
+import { CategoryIcon } from '../../categoryIcons';
+import { Icon } from '../../components/Icon';
+import { CategoryIconPicker } from './CategoryIconPicker';
 
 interface Props {
   categories: Category[];
@@ -15,6 +18,8 @@ export function CategoriesAdmin({ categories, productCount, onChanged, onError }
   const [newName, setNewName] = useState('');
   const [newIcon, setNewIcon] = useState('');
   const [editingId, setEditingId] = useState<number | null>(null);
+  // which field the icon picker is open for: 'new', a category id, or null
+  const [picking, setPicking] = useState<'new' | number | null>(null);
   const [editName, setEditName] = useState('');
   const [editIcon, setEditIcon] = useState('');
 
@@ -73,13 +78,14 @@ export function CategoriesAdmin({ categories, productCount, onChanged, onError }
         {categories.map((c) =>
           editingId === c.id ? (
             <li key={c.id} className="category-edit">
-              <input
-                className="input input-icon"
-                value={editIcon}
-                onChange={(e) => setEditIcon(e.target.value)}
-                placeholder="☕"
-                maxLength={4}
-              />
+              <button
+                type="button"
+                className="btn btn-ghost icon-button"
+                onClick={() => setPicking(c.id)}
+                title="Choisir une icône"
+              >
+                {editIcon ? <CategoryIcon icon={editIcon} size={18} /> : <Icon name="image" size={16} />}
+              </button>
               <input
                 className="input"
                 value={editName}
@@ -91,13 +97,13 @@ export function CategoriesAdmin({ categories, productCount, onChanged, onError }
                 OK
               </button>
               <button type="button" className="btn btn-ghost btn-sm" onClick={() => setEditingId(null)}>
-                ✕
+                <Icon name="x" size={14} />
               </button>
             </li>
           ) : (
             <li key={c.id}>
               <span className="category-name">
-                {c.icon && <span className="tab-icon">{c.icon}</span>}
+                <CategoryIcon icon={c.icon} size={15} />
                 {c.name}
                 <span className="muted"> · {productCount(c.id)}</span>
               </span>
@@ -111,14 +117,23 @@ export function CategoriesAdmin({ categories, productCount, onChanged, onError }
           ),
         )}
       </ul>
-      <div className="category-add">
-        <input
-          className="input input-icon"
-          value={newIcon}
-          onChange={(e) => setNewIcon(e.target.value)}
-          placeholder="🍕"
-          maxLength={4}
+      {picking !== null && (
+        <CategoryIconPicker
+          value={picking === 'new' ? newIcon || null : editIcon || null}
+          onPick={(icon) => (picking === 'new' ? setNewIcon(icon ?? '') : setEditIcon(icon ?? ''))}
+          onClose={() => setPicking(null)}
         />
+      )}
+
+      <div className="category-add">
+        <button
+                type="button"
+                className="btn btn-ghost icon-button"
+                onClick={() => setPicking('new')}
+                title="Choisir une icône"
+              >
+                {newIcon ? <CategoryIcon icon={newIcon} size={18} /> : <Icon name="image" size={16} />}
+              </button>
         <input
           className="input"
           value={newName}

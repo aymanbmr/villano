@@ -6,7 +6,7 @@ import { Icon } from '../components/Icon';
 
 type Mode = 'pin' | 'password';
 
-const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'C', '0', '⌫'];
+const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'C', '0', 'back'];
 const PIN_MAX = 6;
 
 // Full-screen lock: employees type their PIN on the keypad, the owner can
@@ -36,7 +36,7 @@ export function LoginPage() {
     if (busy) return;
     setError(null);
     if (key === 'C') return setPin('');
-    if (key === '⌫') return setPin((p) => p.slice(0, -1));
+    if (key === 'back') return setPin((p) => p.slice(0, -1));
     setPin((p) => (p.length < PIN_MAX ? p + key : p));
   };
 
@@ -45,7 +45,7 @@ export function LoginPage() {
     if (mode !== 'pin') return;
     const onKey = (e: KeyboardEvent) => {
       if (/^\d$/.test(e.key)) press(e.key);
-      else if (e.key === 'Backspace') press('⌫');
+      else if (e.key === 'Backspace') press('back');
       else if (e.key === 'Escape') press('C');
       else if (e.key === 'Enter' && pin.length >= 4) void submit({ pin });
     };
@@ -99,7 +99,7 @@ export function LoginPage() {
                   onClick={() => press(k)}
                   disabled={busy}
                 >
-                  {k === '⌫' ? <Icon name="backspace" size={22} /> : k}
+                  {k === 'back' ? <Icon name="backspace" size={22} /> : k}
                 </button>
               ))}
             </div>

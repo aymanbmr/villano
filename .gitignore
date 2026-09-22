@@ -8,3 +8,6 @@ backend/uploads/
 
 # Secrets
 backend/.env
+
+# Build caches
+*.tsbuildinfo

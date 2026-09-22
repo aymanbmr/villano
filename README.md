@@ -157,6 +157,21 @@ La caisse ne prend des commandes que si la journée est ouverte.
 - La règle est appliquée aussi côté serveur (403), donc impossible à contourner
   depuis un téléphone.
 
+## Compatibilité des anciennes caisses
+
+Aucun emoji n'est affiché dans l'application : les postes anciens (Windows 7)
+n'ont pas de police emoji et afficheraient des carrés vides. Tout est dessiné
+en SVG :
+
+- icônes de l'interface (boutons, onglets, clavier) ;
+- icônes de catégories, choisies dans une liste (Admin, Menu & stock,
+  panneau Catégories, bouton icône) ;
+- images de produits générées : dégradé + initiales du produit.
+
+Les catégories créées avant ce changement (emoji en base) sont converties
+automatiquement au démarrage du serveur. Pour régénérer les images de
+démonstration : `cd backend && npm run fix:images`.
+
 ## Écrans supportés
 
 L'interface s'adapte de 320 px (petit téléphone) aux grands écrans :

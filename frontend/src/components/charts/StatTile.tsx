@@ -1,3 +1,5 @@
+import { Icon } from '../Icon';
+
 interface Props {
   label: string;
   value: string;
@@ -14,7 +16,8 @@ export function StatTile({ label, value, delta, hint }: Props) {
       <div className="stat-value">{value}</div>
       {dir && (
         <div className={`stat-delta is-${dir}`}>
-          {dir === 'up' ? '▲' : dir === 'down' ? '▼' : '='} {Math.abs((delta ?? 0) * 100).toFixed(0)} %
+          {dir !== 'flat' && <Icon name={dir === 'up' ? 'up' : 'down'} size={13} />}
+          {Math.abs((delta ?? 0) * 100).toFixed(0)} %
           <span className="stat-hint"> vs période précédente</span>
         </div>
       )}
