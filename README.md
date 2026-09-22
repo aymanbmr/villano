@@ -157,6 +157,19 @@ La caisse ne prend des commandes que si la journée est ouverte.
 - La règle est appliquée aussi côté serveur (403), donc impossible à contourner
   depuis un téléphone.
 
+## Identité visuelle
+
+Le logo Villano est utilisé partout : barre de l'application, écran de
+connexion, fenêtre d'ouverture de journée, tickets imprimés, icônes
+(navigateur, bureau Windows, application mobile).
+
+Sources :  (original) et 
+(marque seule et logo complet, en noir et en blanc, fond transparent).
+
+Le thème reprend le logo : noir, blanc et gris. Les couleurs ne servent plus
+qu'aux signaux de la caisse (stock, encaissé, erreur) et à distinguer
+espèces/carte sur le tableau de bord.
+
 ## Compatibilité des anciennes caisses
 
 Aucun emoji n'est affiché dans l'application : les postes anciens (Windows 7)

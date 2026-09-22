@@ -3,33 +3,34 @@
    ========================================================================== */
 
 :root {
-  --bg: #f4f4f5;
+  --bg: #f5f5f5;
   --surface: #ffffff;
   --surface-2: #fafafa;
-  --surface-3: #f4f4f5;
-  --border: #e4e4e7;
-  --border-strong: #d4d4d8;
-  --text: #18181b;
-  --text-2: #3f3f46;
-  --muted: #71717a;
-  --muted-2: #a1a1aa;
+  --surface-3: #f5f5f5;
+  --border: #e5e5e5;
+  --border-strong: #d4d4d4;
+  --text: #0a0a0a;
+  --text-2: #404040;
+  --muted: #737373;
+  --muted-2: #a3a3a3;
 
-  --primary: #b45309;
-  --primary-hover: #92400e;
-  --primary-soft: #fef3c7;
-  --primary-soft-2: #fffbeb;
+  /* Brand: the Villano logo is pure black on white */
+  --primary: #0a0a0a;
+  --primary-hover: #262626;
+  --primary-soft: #f5f5f5;
+  --primary-soft-2: #fafafa;
 
-  --dark: #1c1917;
-  --dark-2: #292524;
-  --dark-text: #fafaf9;
-  --dark-muted: #a8a29e;
+  --dark: #0a0a0a;
+  --dark-2: #171717;
+  --dark-text: #ffffff;
+  --dark-muted: #a3a3a3;
 
   --success: #15803d;
   --success-soft: #dcfce7;
   --danger: #dc2626;
   --danger-soft: #fee2e2;
-  --warning: #b45309;
-  --warning-soft: #fef3c7;
+  --warning: #a16207;
+  --warning-soft: #fef9c3;
   --info: #1d4ed8;
   --info-soft: #dbeafe;
 
@@ -40,7 +41,7 @@
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 2px 8px rgba(0, 0, 0, 0.05);
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.06);
   --shadow-lg: 0 20px 50px rgba(0, 0, 0, 0.25);
-  --ring: 0 0 0 3px rgba(180, 83, 9, 0.18);
+  --ring: 0 0 0 3px rgba(10, 10, 10, 0.14);
 
   --appbar-h: 56px;
   --cart-width: 400px;
@@ -375,11 +376,13 @@ select.input {
 .appbar-logo {
   display: grid;
   place-items: center;
-  width: 32px;
-  height: 32px;
-  color: #fff;
-  background: var(--primary);
-  border-radius: 8px;
+  height: 30px;
+}
+
+.appbar-logo img {
+  height: 30px;
+  width: auto;
+  display: block;
 }
 
 .appbar-name {
@@ -1882,8 +1885,8 @@ select.input {
   min-height: 100vh;
   padding: 16px;
   background: var(--dark);
-  background-image: radial-gradient(circle at 20% 20%, rgba(180, 83, 9, 0.35), transparent 45%),
-    radial-gradient(circle at 80% 80%, rgba(180, 83, 9, 0.2), transparent 40%);
+  background-image: radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.08), transparent 45%),
+    radial-gradient(circle at 80% 80%, rgba(255, 255, 255, 0.05), transparent 40%);
 }
 
 .login-card {
@@ -2000,8 +2003,10 @@ select.input {
     background: #fff;
   }
 
-  /* Only the ticket is printed */
+  /* Only the ticket is printed — including a reprint from the admin pages */
   .pos,
+  .admin,
+  .login,
   .toast,
   .modal-backdrop {
     display: none !important;
@@ -2487,11 +2492,11 @@ select.input {
 
 :root {
   /* Chart colors — validated (dataviz): amber single-series / cash, blue = card */
-  --chart-1: #b45309;
-  --chart-cash: #b45309;
+  --chart-1: #171717;
+  --chart-cash: #404040;
   --chart-card: #2a78d6;
-  --chart-grid: #ebebeb;
-  --chart-axis: #d4d4d8;
+  --chart-grid: #ededed;
+  --chart-axis: #d4d4d4;
 }
 
 .page-title {
@@ -3492,4 +3497,27 @@ select.input {
   color: var(--primary);
   border-color: var(--primary);
   box-shadow: var(--ring);
+}
+
+/* ---------- Logo ---------- */
+
+.login-logo {
+  display: block;
+  width: min(220px, 62%);
+  height: auto;
+  margin: 4px auto 10px;
+}
+
+.modal-logo {
+  display: block;
+  height: 60px;
+  width: auto;
+  margin: 0 auto 4px;
+}
+
+.tp-logo {
+  display: block;
+  height: 52px;
+  width: auto;
+  margin: 0 auto 4px;
 }

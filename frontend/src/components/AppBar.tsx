@@ -1,5 +1,4 @@
 import type { ReactNode } from 'react';
-import { Icon } from './Icon';
 import { RESTAURANT } from '../config';
 
 interface Props {
@@ -16,7 +15,7 @@ export function AppBar({ children, actions, subtitle }: Props) {
     <header className="appbar">
       <div className="appbar-brand">
         <span className="appbar-logo">
-          <Icon name="coffee" size={18} />
+          <img src="/logo/villano-mark-white.png" alt="" width={22} height={30} />
         </span>
         <span className="appbar-name">{RESTAURANT.name}</span>
         {subtitle && <span className="appbar-subtitle">{subtitle}</span>}

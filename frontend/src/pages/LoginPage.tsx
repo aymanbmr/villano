@@ -62,7 +62,13 @@ export function LoginPage() {
   return (
     <div className="login">
       <div className="login-card">
-        <div className="brand login-brand">{RESTAURANT.name}</div>
+        <img
+          className="login-logo"
+          src="/logo/villano-full.png"
+          alt={RESTAURANT.name}
+          width={220}
+          height={137}
+        />
         <div className="muted">{RESTAURANT.subtitle}</div>
 
         <div className="segmented login-tabs">

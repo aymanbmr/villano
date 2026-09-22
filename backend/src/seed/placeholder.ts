@@ -2,13 +2,15 @@
 // No emoji anywhere: the café's older Windows machines have no emoji font and
 // would render empty boxes instead.
 
+// Shades of the brand's black, so generated covers sit with the logo
+// instead of fighting it.
 const PALETTES: [string, string][] = [
-  ['#6f4e37', '#c69c6d'],
-  ['#0f766e', '#5eead4'],
-  ['#b45309', '#fcd34d'],
-  ['#9f1239', '#fb7185'],
-  ['#7e22ce', '#f0abfc'],
-  ['#1d4ed8', '#93c5fd'],
+  ['#171717', '#404040'],
+  ['#262626', '#525252'],
+  ['#0a0a0a', '#333333'],
+  ['#1f1f1f', '#4a4a4a'],
+  ['#2d2d2d', '#5a5a5a'],
+  ['#141414', '#3a3a3a'],
 ];
 
 export function slugify(name: string) {

@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom';
 import { formatPrice, orderLabel, type Order } from '../api';
 import { RESTAURANT } from '../config';
 
@@ -27,12 +28,16 @@ const formatDate = (iso: string) =>
   });
 
 // Rendered off-screen and only visible under @media print (see index.css).
+// Rendered through a portal on <body>: the print stylesheet hides the whole
+// app (caisse or admin) and keeps only this ticket, so it must never sit
+// inside the page being hidden.
 export function PrintTicket({ kind, order }: PrintJob) {
   const paid = kind === 'receipt' && order.status === 'paid';
 
-  return (
+  return createPortal(
     <div className={`ticket-print ticket-${kind}`}>
       <div className="tp-center">
+        <img className="tp-logo" src="/logo/villano-mark.png" alt="" width={38} height={52} />
         <div className="tp-brand">{RESTAURANT.name}</div>
         {kind !== 'kitchen' && (
           <>
@@ -118,6 +123,7 @@ export function PrintTicket({ kind, order }: PrintJob) {
           <div className="tp-center tp-footer">{RESTAURANT.footer}</div>
         </>
       )}
-    </div>
+    </div>,
+    document.body,
   );
 }

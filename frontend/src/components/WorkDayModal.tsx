@@ -37,9 +37,7 @@ export function WorkDayModal({ onOpened, onDismiss }: Props) {
   return (
     <div className="modal-backdrop" role="dialog" aria-modal="true">
       <div className="modal workday-modal">
-        <div className="modal-check">
-          <Icon name="clipboard" size={28} />
-        </div>
+        <img className="modal-logo" src="/logo/villano-mark.png" alt="" width={44} height={60} />
 
         {allowed ? (
           <>

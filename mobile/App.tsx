@@ -19,7 +19,7 @@ import { WebView, type WebViewNavigation } from 'react-native-webview';
 // safe areas. The server address comes from app.json → extra.appUrl.
 const APP_URL: string = Constants.expoConfig?.extra?.appUrl ?? 'http://localhost:5173';
 
-const DARK = '#1c1917';
+const DARK = '#0a0a0a';
 
 void SplashScreen.preventAutoHideAsync();
 
@@ -107,7 +107,7 @@ export default function App() {
 
         {loading && !error && (
           <View style={styles.loader} pointerEvents="none">
-            <ActivityIndicator size="large" color="#b45309" />
+            <ActivityIndicator size="large" color="#ffffff" />
           </View>
         )}
       </SafeAreaView>
@@ -142,7 +142,7 @@ const styles = StyleSheet.create({
     marginTop: 24,
     paddingHorizontal: 24,
     paddingVertical: 12,
-    backgroundColor: '#b45309',
+    backgroundColor: '#171717',
     borderRadius: 8,
   },
   buttonText: { color: '#fff', fontWeight: '600', fontSize: 15 },
