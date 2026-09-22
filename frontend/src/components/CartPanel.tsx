@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { formatPrice, orderLabel, type CreateOrderPayload, type Order, type OrderType } from '../api';
 import type { CartLine } from '../useCart';
 import { Icon } from './Icon';
+import { TablePicker } from './TablePicker';
 
 interface Props {
   lines: CartLine[];
@@ -10,6 +11,8 @@ interface Props {
   error: string | null;
   // When set, the cart adds lines to this open order instead of creating one
   appendTo: Order | null;
+  // Table numbers already busy with another open dine-in order
+  occupiedTables: string[];
   onSetQuantity: (productId: number, quantity: number) => void;
   onRemove: (productId: number) => void;
   onClear: () => void;
@@ -25,6 +28,7 @@ export function CartPanel({
   submitting,
   error,
   appendTo,
+  occupiedTables,
   onSetQuantity,
   onRemove,
   onClear,
@@ -36,6 +40,7 @@ export function CartPanel({
   const [orderType, setOrderType] = useState<OrderType>('dine_in');
   const [tableNumber, setTableNumber] = useState('');
   const [note, setNote] = useState('');
+  const [pickerOpen, setPickerOpen] = useState(false);
 
   // Reset the header inputs whenever the cart is emptied (new order)
   useEffect(() => {
@@ -90,15 +95,31 @@ export function CartPanel({
             </button>
           </div>
           {orderType === 'dine_in' && (
-            <input
-              className={`input${tableMissing && lines.length > 0 ? ' is-invalid' : ''}`}
-              placeholder="N° de table (obligatoire)"
-              value={tableNumber}
-              onChange={(e) => setTableNumber(e.target.value)}
-              required
-            />
+            <button
+              type="button"
+              className={`table-select-btn${tableMissing && lines.length > 0 ? ' is-invalid' : ''}${tableNumber ? '' : ' is-empty'}`}
+              onClick={() => setPickerOpen(true)}
+            >
+              <span className="row-icon">
+                <Icon name="grid" size={16} />
+                {tableNumber ? `Table ${tableNumber}` : 'Choisir une table (obligatoire)'}
+              </span>
+              <Icon name="edit" size={14} />
+            </button>
           )}
         </>
+      )}
+
+      {pickerOpen && (
+        <TablePicker
+          selected={tableNumber}
+          occupied={occupiedTables}
+          onSelect={(t) => {
+            setTableNumber(t);
+            setPickerOpen(false);
+          }}
+          onClose={() => setPickerOpen(false)}
+        />
       )}
 
       <ul className="cart-lines">

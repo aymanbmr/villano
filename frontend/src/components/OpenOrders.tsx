@@ -8,6 +8,7 @@ import {
 } from '../api';
 import { PaymentForm } from './PaymentForm';
 import { Icon } from './Icon';
+import { TablePicker } from './TablePicker';
 import type { TicketKind } from './PrintTicket';
 
 interface Props {
@@ -81,6 +82,9 @@ export function OpenOrders({
                   order={order}
                   busy={busy}
                   error={error}
+                  occupiedTables={orders
+                    .filter((o) => o.id !== order.id && o.orderType === 'dine_in' && o.tableNumber)
+                    .map((o) => o.tableNumber as string)}
                   onPay={onPay}
                   onAddItems={onAddItems}
                   onUpdate={onUpdate}
@@ -97,12 +101,16 @@ export function OpenOrders({
   );
 }
 
-type DetailProps = Omit<Props, 'orders' | 'selectedId' | 'onSelect'> & { order: Order };
+type DetailProps = Omit<Props, 'orders' | 'selectedId' | 'onSelect'> & {
+  order: Order;
+  occupiedTables: string[];
+};
 
 function OrderDetail({
   order,
   busy,
   error,
+  occupiedTables,
   onPay,
   onAddItems,
   onUpdate,
@@ -110,28 +118,24 @@ function OrderDetail({
   onDelete,
   onPrint,
 }: DetailProps) {
-  // Local copies of the editable header fields; saved on blur / toggle
-  const [tableNumber, setTableNumber] = useState(order.tableNumber ?? '');
+  // Local copy of the editable note; saved on blur
   const [note, setNote] = useState(order.note ?? '');
+  const [pickerOpen, setPickerOpen] = useState(false);
 
   useEffect(() => {
-    setTableNumber(order.tableNumber ?? '');
     setNote(order.note ?? '');
-  }, [order.tableNumber, order.note]);
+  }, [order.note]);
 
-  const saveTable = () => {
-    const value = tableNumber.trim();
-    if (value === '') {
-      setTableNumber(order.tableNumber ?? ''); // a dine-in order keeps its table
-      return;
+  const selectTable = (table: string) => {
+    setPickerOpen(false);
+    if (order.orderType !== 'dine_in' || table !== order.tableNumber) {
+      onUpdate(order, { orderType: 'dine_in', tableNumber: table });
     }
-    if (value !== order.tableNumber) onUpdate(order, { tableNumber: value });
   };
 
   const switchToDineIn = () => {
     if (order.orderType === 'dine_in') return;
-    const table = window.prompt('Numéro de table ?')?.trim();
-    if (table) onUpdate(order, { orderType: 'dine_in', tableNumber: table });
+    setPickerOpen(true);
   };
   const saveNote = () => {
     const value = note.trim();
@@ -169,13 +173,21 @@ function OrderDetail({
         </button>
       </div>
       {order.orderType === 'dine_in' && (
-        <input
-          className="input"
-          placeholder="N° de table (obligatoire)"
-          value={tableNumber}
-          onChange={(e) => setTableNumber(e.target.value)}
-          onBlur={saveTable}
-          onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
+        <button type="button" className="table-select-btn" onClick={() => setPickerOpen(true)}>
+          <span className="row-icon">
+            <Icon name="grid" size={16} />
+            Table {order.tableNumber}
+          </span>
+          <Icon name="edit" size={14} />
+        </button>
+      )}
+
+      {pickerOpen && (
+        <TablePicker
+          selected={order.tableNumber ?? ''}
+          occupied={occupiedTables}
+          onSelect={selectTable}
+          onClose={() => setPickerOpen(false)}
         />
       )}
 

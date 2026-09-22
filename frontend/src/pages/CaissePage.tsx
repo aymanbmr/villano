@@ -213,6 +213,10 @@ export function CaissePage() {
     cart.clear();
   };
 
+  const occupiedTables = pendingOrders
+    .filter((o) => o.orderType === 'dine_in' && o.tableNumber && o.id !== appendTo?.id)
+    .map((o) => o.tableNumber as string);
+
   return (
     <>
       <div className={`pos show-${mobilePanel}`}>
@@ -262,6 +266,7 @@ export function CaissePage() {
               submitting={busy}
               error={cartError}
               appendTo={appendTo}
+              occupiedTables={occupiedTables}
               onSetQuantity={cart.setQuantity}
               onRemove={cart.remove}
               onClear={cart.clear}
