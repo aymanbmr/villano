@@ -57,6 +57,11 @@ export class CreateOrderDto extends AddItemsDto {
   @MaxLength(20)
   tableNumber?: string;
 
+  // Employee responsible for the order, chosen by the cashier
+  @IsOptional()
+  @IsInt()
+  waiterId?: number;
+
   @IsOptional()
   @IsString()
   @MaxLength(300)
@@ -79,6 +84,10 @@ export class UpdateOrderDto {
   @IsString()
   @MaxLength(20)
   tableNumber?: string | null;
+
+  @IsOptional()
+  @IsInt()
+  waiterId?: number | null;
 
   @IsOptional()
   @IsString()

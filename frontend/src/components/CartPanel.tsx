@@ -1,8 +1,16 @@
 import { useEffect, useState } from 'react';
-import { formatPrice, orderLabel, type CreateOrderPayload, type Order, type OrderType } from '../api';
+import {
+  formatPrice,
+  orderLabel,
+  type CreateOrderPayload,
+  type Order,
+  type OrderType,
+  type StaffMember,
+} from '../api';
 import type { CartLine } from '../useCart';
 import { Icon } from './Icon';
 import { TablePicker } from './TablePicker';
+import { WaiterPicker } from './WaiterPicker';
 
 interface Props {
   lines: CartLine[];
@@ -13,6 +21,7 @@ interface Props {
   appendTo: Order | null;
   // Table numbers already busy with another open dine-in order
   occupiedTables: string[];
+  staff: StaffMember[];
   onSetQuantity: (productId: number, quantity: number) => void;
   onRemove: (productId: number) => void;
   onClear: () => void;
@@ -29,6 +38,7 @@ export function CartPanel({
   error,
   appendTo,
   occupiedTables,
+  staff,
   onSetQuantity,
   onRemove,
   onClear,
@@ -39,25 +49,31 @@ export function CartPanel({
 }: Props) {
   const [orderType, setOrderType] = useState<OrderType>('dine_in');
   const [tableNumber, setTableNumber] = useState('');
+  const [waiter, setWaiter] = useState<StaffMember | null>(null);
   const [note, setNote] = useState('');
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [waiterPickerOpen, setWaiterPickerOpen] = useState(false);
 
   // Reset the header inputs whenever the cart is emptied (new order)
   useEffect(() => {
     if (lines.length === 0) {
       setTableNumber('');
+      setWaiter(null);
       setNote('');
     }
   }, [lines.length]);
 
-  // Dine-in orders must carry a table number (also enforced by the API)
+  // Dine-in orders must carry a table number and a responsible waiter
+  // (also enforced by the API)
   const tableMissing = !appendTo && orderType === 'dine_in' && tableNumber.trim() === '';
+  const waiterMissing = !appendTo && orderType === 'dine_in' && !waiter;
 
   const submit = () =>
     onSubmit({
       items: lines.map((l) => ({ productId: l.product.id, quantity: l.quantity })),
       orderType,
       tableNumber: orderType === 'dine_in' && tableNumber.trim() ? tableNumber.trim() : undefined,
+      waiterId: waiter?.id,
       note: note.trim() || undefined,
     });
 
@@ -95,17 +111,30 @@ export function CartPanel({
             </button>
           </div>
           {orderType === 'dine_in' && (
-            <button
-              type="button"
-              className={`table-select-btn${tableMissing && lines.length > 0 ? ' is-invalid' : ''}${tableNumber ? '' : ' is-empty'}`}
-              onClick={() => setPickerOpen(true)}
-            >
-              <span className="row-icon">
-                <Icon name="grid" size={16} />
-                {tableNumber ? `Table ${tableNumber}` : 'Choisir une table (obligatoire)'}
-              </span>
-              <Icon name="edit" size={14} />
-            </button>
+            <>
+              <button
+                type="button"
+                className={`table-select-btn${tableMissing && lines.length > 0 ? ' is-invalid' : ''}${tableNumber ? '' : ' is-empty'}`}
+                onClick={() => setPickerOpen(true)}
+              >
+                <span className="row-icon">
+                  <Icon name="grid" size={16} />
+                  {tableNumber ? `Table ${tableNumber}` : 'Choisir une table (obligatoire)'}
+                </span>
+                <Icon name="edit" size={14} />
+              </button>
+              <button
+                type="button"
+                className={`table-select-btn${waiterMissing && lines.length > 0 ? ' is-invalid' : ''}${waiter ? '' : ' is-empty'}`}
+                onClick={() => setWaiterPickerOpen(true)}
+              >
+                <span className="row-icon">
+                  <Icon name="users" size={16} />
+                  {waiter ? `${waiter.firstName} ${waiter.lastName}` : 'Choisir le serveur (obligatoire)'}
+                </span>
+                <Icon name="edit" size={14} />
+              </button>
+            </>
           )}
         </>
       )}
@@ -119,6 +148,18 @@ export function CartPanel({
             setPickerOpen(false);
           }}
           onClose={() => setPickerOpen(false)}
+        />
+      )}
+
+      {waiterPickerOpen && (
+        <WaiterPicker
+          staff={staff}
+          selectedId={waiter?.id ?? null}
+          onSelect={(s) => {
+            setWaiter(s);
+            setWaiterPickerOpen(false);
+          }}
+          onClose={() => setWaiterPickerOpen(false)}
         />
       )}
 
@@ -186,8 +227,14 @@ export function CartPanel({
         </label>
 
         {error && <div className="error">{error}</div>}
-        {tableMissing && lines.length > 0 && (
-          <div className="hint">Indiquez le numéro de table pour envoyer la commande.</div>
+        {(tableMissing || waiterMissing) && lines.length > 0 && (
+          <div className="hint">
+            {tableMissing && waiterMissing
+              ? 'Indiquez la table et le serveur pour envoyer la commande.'
+              : tableMissing
+                ? 'Indiquez le numéro de table pour envoyer la commande.'
+                : 'Choisissez le serveur responsable pour envoyer la commande.'}
+          </div>
         )}
 
         <div className="cart-actions">
@@ -199,8 +246,8 @@ export function CartPanel({
           <button
             type="button"
             className="btn btn-primary btn-lg"
-            disabled={lines.length === 0 || submitting || tableMissing}
-            title={tableMissing ? 'Indiquez le numéro de table' : undefined}
+            disabled={lines.length === 0 || submitting || tableMissing || waiterMissing}
+            title={tableMissing || waiterMissing ? 'Indiquez la table et le serveur' : undefined}
             onClick={submit}
           >
             {submitting

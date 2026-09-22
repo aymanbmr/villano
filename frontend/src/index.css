@@ -1738,6 +1738,52 @@ select.input {
   border-color: var(--warning);
 }
 
+/* ---------- Waiter picker ---------- */
+
+.staff-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  max-height: 50vh;
+  overflow-y: auto;
+}
+
+.staff-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 8px;
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+}
+
+.staff-row:hover {
+  background: var(--surface-3);
+}
+
+.staff-row.is-selected {
+  background: var(--primary-soft);
+}
+
+.staff-row-name {
+  flex: 1;
+  text-align: left;
+  font-weight: 600;
+}
+
+.staff-row .role-badge {
+  flex-shrink: 0;
+}
+
+.staff-row .icon {
+  color: var(--primary);
+  flex-shrink: 0;
+}
+
 /* ---------- Employees ---------- */
 
 .role-cards {

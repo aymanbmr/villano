@@ -4,11 +4,13 @@ import {
   orderLabel,
   type Order,
   type PayOrderPayload,
+  type StaffMember,
   type UpdateOrderPayload,
 } from '../api';
 import { PaymentForm } from './PaymentForm';
 import { Icon } from './Icon';
 import { TablePicker } from './TablePicker';
+import { WaiterPicker } from './WaiterPicker';
 import type { TicketKind } from './PrintTicket';
 
 interface Props {
@@ -16,6 +18,7 @@ interface Props {
   selectedId: number | null;
   busy: boolean;
   error: string | null;
+  staff: StaffMember[];
   onSelect: (id: number | null) => void;
   onPay: (order: Order, payload: PayOrderPayload) => void;
   onAddItems: (order: Order) => void;
@@ -39,6 +42,7 @@ export function OpenOrders({
   selectedId,
   busy,
   error,
+  staff,
   onSelect,
   onPay,
   onAddItems,
@@ -68,7 +72,10 @@ export function OpenOrders({
                 onClick={() => onSelect(selected ? null : order.id)}
               >
                 <div>
-                  <div className="open-order-title">{orderLabel(order)}</div>
+                  <div className="open-order-title">
+                    {orderLabel(order)}
+                    {order.waiterName && <span className="muted"> · {order.waiterName}</span>}
+                  </div>
                   <div className="muted">
                     {order.ticketNumber} · {order.items.reduce((s, i) => s + i.quantity, 0)} article(s)
                     · {elapsed(order.createdAt)}
@@ -82,6 +89,7 @@ export function OpenOrders({
                   order={order}
                   busy={busy}
                   error={error}
+                  staff={staff}
                   occupiedTables={orders
                     .filter((o) => o.id !== order.id && o.orderType === 'dine_in' && o.tableNumber)
                     .map((o) => o.tableNumber as string)}
@@ -110,6 +118,7 @@ function OrderDetail({
   order,
   busy,
   error,
+  staff,
   occupiedTables,
   onPay,
   onAddItems,
@@ -121,6 +130,7 @@ function OrderDetail({
   // Local copy of the editable note; saved on blur
   const [note, setNote] = useState(order.note ?? '');
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [waiterPickerOpen, setWaiterPickerOpen] = useState(false);
 
   useEffect(() => {
     setNote(order.note ?? '');
@@ -173,13 +183,26 @@ function OrderDetail({
         </button>
       </div>
       {order.orderType === 'dine_in' && (
-        <button type="button" className="table-select-btn" onClick={() => setPickerOpen(true)}>
-          <span className="row-icon">
-            <Icon name="grid" size={16} />
-            Table {order.tableNumber}
-          </span>
-          <Icon name="edit" size={14} />
-        </button>
+        <>
+          <button type="button" className="table-select-btn" onClick={() => setPickerOpen(true)}>
+            <span className="row-icon">
+              <Icon name="grid" size={16} />
+              Table {order.tableNumber}
+            </span>
+            <Icon name="edit" size={14} />
+          </button>
+          <button
+            type="button"
+            className={`table-select-btn${order.waiterName ? '' : ' is-empty'}`}
+            onClick={() => setWaiterPickerOpen(true)}
+          >
+            <span className="row-icon">
+              <Icon name="users" size={16} />
+              {order.waiterName ?? 'Choisir le serveur'}
+            </span>
+            <Icon name="edit" size={14} />
+          </button>
+        </>
       )}
 
       {pickerOpen && (
@@ -188,6 +211,18 @@ function OrderDetail({
           occupied={occupiedTables}
           onSelect={selectTable}
           onClose={() => setPickerOpen(false)}
+        />
+      )}
+
+      {waiterPickerOpen && (
+        <WaiterPicker
+          staff={staff}
+          selectedId={order.waiterId}
+          onSelect={(s) => {
+            setWaiterPickerOpen(false);
+            if (s.id !== order.waiterId) onUpdate(order, { waiterId: s.id });
+          }}
+          onClose={() => setWaiterPickerOpen(false)}
         />
       )}
 

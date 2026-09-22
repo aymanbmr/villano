@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Between, DataSource, EntityManager, FindOptionsWhere, IsNull, Repository } from 'typeorm';
+import { Employee } from '../employees/employee.entity.js';
 import { Product } from '../products/product.entity.js';
 import { WorkDay } from '../work-days/work-day.entity.js';
 import { Order, OrderItem, OrderStatus } from './order.entity.js';
@@ -26,6 +27,7 @@ const localDay = (s: string) => {
 
 // Error messages are shown as-is to the cashier, hence French
 const TABLE_REQUIRED = 'Le numéro de table est obligatoire pour une commande sur place';
+const WAITER_REQUIRED = 'Choisissez le serveur responsable de cette commande';
 const DAY_CLOSED = 'Ouvrez la journée avant de prendre des commandes';
 
 @Injectable()
@@ -71,11 +73,17 @@ export class OrdersService {
       if (orderType === 'dine_in' && !tableNumber) {
         throw new BadRequestException(TABLE_REQUIRED);
       }
+      const waiter = await this.resolveWaiter(manager, dto.waiterId);
+      if (orderType === 'dine_in' && !waiter) {
+        throw new BadRequestException(WAITER_REQUIRED);
+      }
       const items = await this.reserveItems(manager, dto.items, []);
       const order = manager.getRepository(Order).create({
         ticketNumber: await this.nextTicketNumber(manager.getRepository(Order)),
         orderType,
         tableNumber,
+        waiterId: waiter?.id ?? null,
+        waiterName: waiter?.name ?? null,
         note: dto.note ?? null,
         status: 'pending',
         items,
@@ -129,10 +137,18 @@ export class OrdersService {
       this.assertOpen(order);
       if (dto.orderType !== undefined) order.orderType = dto.orderType;
       if (dto.tableNumber !== undefined) order.tableNumber = dto.tableNumber?.trim() || null;
+      if (dto.waiterId !== undefined) {
+        const waiter = await this.resolveWaiter(manager, dto.waiterId ?? undefined);
+        order.waiterId = waiter?.id ?? null;
+        order.waiterName = waiter?.name ?? null;
+      }
       if (dto.note !== undefined) order.note = dto.note || null;
       if (order.orderType === 'takeaway') order.tableNumber = null;
       if (order.orderType === 'dine_in' && !order.tableNumber) {
         throw new BadRequestException(TABLE_REQUIRED);
+      }
+      if (order.orderType === 'dine_in' && !order.waiterId) {
+        throw new BadRequestException(WAITER_REQUIRED);
       }
       return manager.getRepository(Order).save(order);
     });
@@ -199,6 +215,16 @@ export class OrdersService {
     if (order.status !== 'pending') {
       throw new BadRequestException('Seules les commandes en cours peuvent être modifiées');
     }
+  }
+
+  // Snapshot the employee's name at selection time, like productName on lines
+  private async resolveWaiter(manager: EntityManager, waiterId: number | undefined) {
+    if (waiterId == null) return null;
+    const employee = await manager
+      .getRepository(Employee)
+      .findOneBy({ id: waiterId, isActive: true });
+    if (!employee) throw new BadRequestException('Employé introuvable ou inactif');
+    return { id: employee.id, name: `${employee.firstName} ${employee.lastName}` };
   }
 
   private async restoreStock(manager: EntityManager, order: Order) {

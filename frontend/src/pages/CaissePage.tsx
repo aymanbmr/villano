@@ -8,6 +8,7 @@ import {
   type Order,
   type PayOrderPayload,
   type Product,
+  type StaffMember,
   type UpdateOrderPayload,
   type WorkDay,
   formatPrice,
@@ -37,6 +38,7 @@ const errorMessage = (e: unknown) =>
 export function CaissePage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+  const [staff, setStaff] = useState<StaffMember[]>([]);
   const [pendingOrders, setPendingOrders] = useState<Order[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
   // undefined = not checked yet, null = closed, object = the open day
@@ -74,14 +76,16 @@ export function CaissePage() {
 
   const load = useCallback(async () => {
     try {
-      const [cats, prods, pending, day] = await Promise.all([
+      const [cats, prods, staffList, pending, day] = await Promise.all([
         api.categories(),
         api.products(),
+        api.staff(),
         api.pendingOrders(),
         workDayApi.current(),
       ]);
       setCategories(cats);
       setProducts(prods);
+      setStaff(staffList);
       setPendingOrders(pending);
       setWorkDay(day);
       cart.syncProducts(prods);
@@ -292,6 +296,7 @@ export function CaissePage() {
               error={cartError}
               appendTo={appendTo}
               occupiedTables={occupiedTables}
+              staff={staff}
               onSetQuantity={cart.setQuantity}
               onRemove={cart.remove}
               onClear={cart.clear}
@@ -306,6 +311,7 @@ export function CaissePage() {
               selectedId={selectedOrderId}
               busy={busy}
               error={payError}
+              staff={staff}
               onSelect={setSelectedOrderId}
               onPay={payOrder}
               onAddItems={startAppend}

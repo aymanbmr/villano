@@ -30,6 +30,15 @@ export class Order {
   @Column({ type: 'text', nullable: true })
   tableNumber: string | null;
 
+  // Employee responsible for the order (chosen by the cashier so two
+  // waiters never dispute who a table belongs to). Snapshot of the name so
+  // it survives the employee being renamed or leaving.
+  @Column({ type: 'integer', nullable: true })
+  waiterId: number | null;
+
+  @Column({ type: 'text', nullable: true })
+  waiterName: string | null;
+
   @Column({ type: 'text', default: 'pending' })
   status: OrderStatus;
 

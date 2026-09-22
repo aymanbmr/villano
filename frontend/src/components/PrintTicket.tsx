@@ -50,6 +50,7 @@ export function PrintTicket({ kind, order }: PrintJob) {
         <span>{formatDate(paid && order.paidAt ? order.paidAt : order.createdAt)}</span>
       </div>
       <div className="tp-where">{orderLabel(order)}</div>
+      {order.waiterName && <div>Serveur : {order.waiterName}</div>}
       <div className="tp-rule" />
 
       {kind === 'kitchen' ? (

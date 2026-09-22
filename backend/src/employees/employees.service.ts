@@ -19,6 +19,16 @@ export class EmployeesService {
     });
   }
 
+  // Minimal, non-sensitive fields (no salary/phone/pin/notes): used to let
+  // the cashier pick who is responsible for an order, without exposing HR data
+  findRoster() {
+    return this.repo.find({
+      where: { isActive: true },
+      select: { id: true, firstName: true, lastName: true, role: true },
+      order: { firstName: 'ASC', lastName: 'ASC' },
+    });
+  }
+
   async findOne(id: number) {
     const employee = await this.repo.findOneBy({ id });
     if (!employee) throw new NotFoundException(`Employé ${id} introuvable`);

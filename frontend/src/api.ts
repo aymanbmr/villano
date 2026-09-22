@@ -23,6 +23,15 @@ export interface Product {
   category: Category | null;
 }
 
+// Minimal, non-sensitive employee info: who the cashier can pick as the
+// waiter responsible for an order (no salary/phone/pin, unlike /employees).
+export interface StaffMember {
+  id: number;
+  firstName: string;
+  lastName: string;
+  role: string;
+}
+
 export type PaymentMethod = 'cash' | 'card';
 export type OrderType = 'dine_in' | 'takeaway';
 // pending = sent to the kitchen, not paid yet; paid = settled; cancelled = stock restored
@@ -42,6 +51,8 @@ export interface Order {
   ticketNumber: string;
   orderType: OrderType;
   tableNumber: string | null;
+  waiterId: number | null;
+  waiterName: string | null;
   status: OrderStatus;
   subtotal: number;
   discount: number;
@@ -70,12 +81,14 @@ export interface CreateOrderPayload {
   items: OrderLinePayload[];
   orderType?: OrderType;
   tableNumber?: string;
+  waiterId?: number;
   note?: string;
   // Pay immediately instead of leaving the order open
   payment?: PayOrderPayload;
 }
 
 export interface UpdateOrderPayload {
+  waiterId?: number | null;
   orderType?: OrderType;
   tableNumber?: string | null;
   note?: string | null;
@@ -135,6 +148,7 @@ export const authApi = {
 export const api = {
   categories: () => request<Category[]>('/categories'),
   products: () => request<Product[]>('/products'),
+  staff: () => request<StaffMember[]>('/staff'),
   pendingOrders: () => request<Order[]>('/orders?status=pending'),
   createOrder: (payload: CreateOrderPayload) => request<Order>('/orders', json('POST', payload)),
   addItems: (orderId: number, items: OrderLinePayload[]) =>
