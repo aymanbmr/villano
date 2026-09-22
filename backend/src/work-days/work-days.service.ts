@@ -36,6 +36,15 @@ export class WorkDaysService {
     if (!day) throw new NotFoundException('Journée introuvable');
     if (day.closedAt) throw new BadRequestException('Cette journée est déjà clôturée');
 
+    // Closing with unsettled orders would leave sales outside any day: they
+    // must be cashed in or cancelled first.
+    const pending = await this.orders.count({ where: { status: 'pending' } });
+    if (pending > 0) {
+      throw new BadRequestException(
+        `Impossible de clôturer : ${pending} commande${pending > 1 ? 's' : ''} encore en cours. Encaissez-les ou annulez-les d'abord.`,
+      );
+    }
+
     const summary = await this.summaryFor(day);
     day.closedAt = new Date();
     day.closedBy = closedBy;

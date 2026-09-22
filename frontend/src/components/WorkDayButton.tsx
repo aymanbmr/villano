@@ -1,14 +1,8 @@
-import { useState } from "react";
-import { createPortal } from "react-dom";
-import {
-  ApiError,
-  formatPrice,
-  workDayApi,
-  type WaiterTotals,
-  type WorkDay,
-} from "../api";
-import { Icon } from "./Icon";
-import { canManageWorkDay, useSession } from "../auth";
+import { useState } from 'react';
+import { createPortal } from 'react-dom';
+import { ApiError, formatPrice, workDayApi, type WaiterTotals, type WorkDay } from '../api';
+import { Icon } from './Icon';
+import { canManageWorkDay, useSession } from '../auth';
 
 interface Props {
   workDay: WorkDay;
@@ -17,13 +11,7 @@ interface Props {
 }
 
 // Per-waiter takings, the figure the manager checks at closing time.
-function WaiterBreakdown({
-  rows,
-  total,
-}: {
-  rows: WaiterTotals[];
-  total: number;
-}) {
+function WaiterBreakdown({ rows, total }: { rows: WaiterTotals[]; total: number }) {
   if (!rows?.length) return null;
   return (
     <div className="waiter-breakdown">
@@ -40,7 +28,7 @@ function WaiterBreakdown({
         </thead>
         <tbody>
           {rows.map((row) => (
-            <tr key={row.waiterId ?? "sans"}>
+            <tr key={row.waiterId ?? 'sans'}>
               <td>{row.waiterName}</td>
               <td className="num">{row.orders}</td>
               <td className="num">{formatPrice(row.cash)}</td>
@@ -53,12 +41,8 @@ function WaiterBreakdown({
           <tr>
             <td>Total</td>
             <td className="num">{rows.reduce((s, r) => s + r.orders, 0)}</td>
-            <td className="num">
-              {formatPrice(rows.reduce((s, r) => s + r.cash, 0))}
-            </td>
-            <td className="num">
-              {formatPrice(rows.reduce((s, r) => s + r.card, 0))}
-            </td>
+            <td className="num">{formatPrice(rows.reduce((s, r) => s + r.cash, 0))}</td>
+            <td className="num">{formatPrice(rows.reduce((s, r) => s + r.card, 0))}</td>
             <td className="num">{formatPrice(total)}</td>
           </tr>
         </tfoot>
@@ -68,9 +52,9 @@ function WaiterBreakdown({
 }
 
 const timeOf = (iso: string) =>
-  new Date(iso).toLocaleTimeString("fr-FR", {
-    hour: "2-digit",
-    minute: "2-digit",
+  new Date(iso).toLocaleTimeString('fr-FR', {
+    hour: '2-digit',
+    minute: '2-digit',
   });
 
 // AppBar pill showing the open day's start time; click opens the closing
@@ -90,7 +74,7 @@ export function WorkDayButton({ workDay, pendingCount, onClosed }: Props) {
       setOpen(false);
       onClosed();
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : "Erreur réseau, réessayez.");
+      setError(e instanceof ApiError ? e.message : 'Erreur réseau, réessayez.');
     } finally {
       setBusy(false);
     }
@@ -110,9 +94,7 @@ export function WorkDayButton({ workDay, pendingCount, onClosed }: Props) {
         }
       >
         <Icon name="clipboard" size={15} />
-        <span className="hide-sm">
-          Journée depuis {timeOf(workDay.openedAt)}
-        </span>
+        <span className="hide-sm">Journée depuis {timeOf(workDay.openedAt)}</span>
       </button>
 
       {open &&
@@ -154,17 +136,14 @@ export function WorkDayButton({ workDay, pendingCount, onClosed }: Props) {
                 </div>
               </div>
 
-              <WaiterBreakdown
-                rows={workDay.summary.byWaiter}
-                total={workDay.summary.revenue}
-              />
+              <WaiterBreakdown rows={workDay.summary.byWaiter} total={workDay.summary.revenue} />
 
               {pendingCount > 0 && (
                 <div className="hint">
-                  {pendingCount} commande{pendingCount > 1 ? "s" : ""} encore en
-                  cours (non encaissée
-                  {pendingCount > 1 ? "s" : ""}). Vous pourrez toujours les
-                  encaisser après la clôture.
+                  <Icon name="alert" size={15} /> {pendingCount} commande
+                  {pendingCount > 1 ? 's' : ''} encore en cours. Encaissez
+                  {pendingCount > 1 ? '-les' : '-la'} ou annulez
+                  {pendingCount > 1 ? '-les' : '-la'} avant de clôturer la journée.
                 </div>
               )}
               {error && <div className="error">{error}</div>}
@@ -181,10 +160,14 @@ export function WorkDayButton({ workDay, pendingCount, onClosed }: Props) {
                 <button
                   type="button"
                   className="btn btn-primary"
-                  disabled={busy}
+                  // A day can only be closed once every order is settled
+                  disabled={busy || pendingCount > 0}
+                  title={
+                    pendingCount > 0 ? 'Des commandes sont encore en cours' : 'Clôturer la journée'
+                  }
                   onClick={confirmClose}
                 >
-                  {busy ? "Clôture…" : "Clôturer la journée"}
+                  {busy ? 'Clôture…' : 'Clôturer la journée'}
                 </button>
               </div>
             </div>
