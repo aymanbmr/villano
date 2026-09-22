@@ -43,6 +43,37 @@ export class WorkDaysService {
     return { ...day, summary };
   }
 
+  // What each waiter brought in during the day. Orders taken without a
+  // waiter (takeaway at the counter) are grouped at the end.
+  private byWaiter(paid: Order[]) {
+    const rows = new Map<
+      string,
+      { waiterId: number | null; waiterName: string; orders: number; items: number; revenue: number; cash: number; card: number }
+    >();
+    for (const order of paid) {
+      const key = order.waiterId != null ? String(order.waiterId) : 'sans';
+      const row = rows.get(key) ?? {
+        waiterId: order.waiterId ?? null,
+        waiterName: order.waiterName ?? 'Sans serveur',
+        orders: 0,
+        items: 0,
+        revenue: 0,
+        cash: 0,
+        card: 0,
+      };
+      row.orders += 1;
+      row.items += order.items.reduce((n, i) => n + i.quantity, 0);
+      row.revenue = round2(row.revenue + order.total);
+      if (order.paymentMethod === 'cash') row.cash = round2(row.cash + order.total);
+      else if (order.paymentMethod === 'card') row.card = round2(row.card + order.total);
+      rows.set(key, row);
+    }
+    return [...rows.values()].sort((a, b) => {
+      if ((a.waiterId === null) !== (b.waiterId === null)) return a.waiterId === null ? 1 : -1;
+      return b.revenue - a.revenue;
+    });
+  }
+
   // Sales settled between the opening of the day and now (or its closing)
   private async summaryFor(day: WorkDay) {
     const end = day.closedAt ?? new Date();
@@ -54,6 +85,7 @@ export class WorkDaysService {
       revenue: round2(paid.reduce((s, o) => s + o.total, 0)),
       cash: round2(paid.filter((o) => o.paymentMethod === 'cash').reduce((s, o) => s + o.total, 0)),
       card: round2(paid.filter((o) => o.paymentMethod === 'card').reduce((s, o) => s + o.total, 0)),
+      byWaiter: this.byWaiter(paid),
     };
   }
 }

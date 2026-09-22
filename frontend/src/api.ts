@@ -362,11 +362,23 @@ export const api = {
 
 // ---------- Journée de travail (ouverture/clôture manuelle de la caisse) ----------
 
+export interface WaiterTotals {
+  waiterId: number | null;
+  waiterName: string;
+  orders: number;
+  items: number;
+  revenue: number;
+  cash: number;
+  card: number;
+}
+
 export interface WorkDaySummary {
   orders: number;
   revenue: number;
   cash: number;
   card: number;
+  // What each waiter brought in during the day, best first
+  byWaiter: WaiterTotals[];
 }
 
 export interface WorkDay {
