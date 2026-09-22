@@ -141,6 +141,23 @@ L'application est une **PWA** : elle s'installe sur l'écran d'accueil et se lan
 
 En production, servir l'app en **HTTPS** (certificat) pour que l'installation soit proposée automatiquement et que le mode hors-ligne soit possible.
 
+## Écrans supportés
+
+L'interface s'adapte de 320 px (petit téléphone) aux grands écrans :
+
+| Écran | Caisse |
+| --- | --- |
+| Téléphone (portrait) | menu et commande en plein écran, barre de navigation en bas |
+| Téléphone (paysage) | menu + commande côte à côte, tout compacté |
+| Tablette portrait | même principe que le téléphone, 3 colonnes de produits |
+| Tablette paysage / PC | menu à gauche, commande à droite |
+| Grand écran (≥ 1700 px) | panneau de commande et cartes produits élargis |
+
+Côté admin, les tableaux deviennent des cartes sous 860 px, le panneau
+Catégories passe sous le tableau en dessous de 1400 px, et la barre du haut
+retire progressivement ses libellés quand la largeur diminue. Sur écran
+tactile, tous les boutons font au moins 38 px.
+
 ## Mode hors ligne (coupure réseau)
 
 Si le serveur devient injoignable (Wi-Fi coupé, PC serveur redémarré), la

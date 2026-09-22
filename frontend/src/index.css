@@ -3056,3 +3056,371 @@ select.input {
     display: none;
   }
 }
+
+/* ==========================================================================
+   Responsive — passes over every screen size
+   ========================================================================== */
+
+/* A grid column holding a wide table must be allowed to shrink: without
+   minmax(0, …) the table's own width pushes the layout past the viewport. */
+.menu-admin {
+  grid-template-columns: minmax(0, 1fr) 320px;
+}
+
+/* The table plus the categories panel only breathe past ~1400px; below that
+   (13-14" laptops, tablets) the panel goes under a full-width table. */
+@media (max-width: 1400px) {
+  .menu-admin {
+    grid-template-columns: 1fr;
+  }
+
+  .categories-admin {
+    position: static;
+  }
+}
+
+/* Tablet in portrait: the phone layout, but three product columns —
+   two would waste the width. */
+@media (min-width: 600px) and (max-width: 860px) {
+  .product-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+  }
+
+  .product-image {
+    height: 120px;
+  }
+}
+
+/* Short screens (phone held sideways): the stacked phone layout leaves almost
+   no room for products, so go back to menu + cart side by side and shrink
+   every fixed height. The !important overrides the phone-width rules above,
+   which are more specific by nature (.pos.show-menu .menu). */
+@media (min-width: 700px) and (max-height: 540px) and (orientation: landscape) {
+  :root {
+    --appbar-h: 44px;
+  }
+
+  .pos {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) 330px;
+    grid-template-rows: var(--appbar-h) 1fr;
+    height: 100dvh;
+  }
+
+  .menu,
+  .cart {
+    display: flex !important;
+    height: auto;
+    min-height: 0;
+    padding-bottom: 0;
+    overflow: hidden;
+  }
+
+  .mobile-nav,
+  .mobile-cart-bar {
+    display: none !important;
+  }
+
+  .menu-toolbar {
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px 6px;
+  }
+
+  .search-box {
+    max-width: 200px;
+  }
+
+  .product-grid {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 8px;
+    padding: 4px 12px 12px;
+  }
+
+  .product-image {
+    height: 74px;
+  }
+
+  .product-body {
+    padding: 6px 8px 8px;
+  }
+
+  .product-stock {
+    display: none;
+  }
+
+  .view-tabs button {
+    padding: 10px 6px 8px;
+  }
+
+  /* Too little height to give the list its own scroll area: let the whole
+     panel scroll and keep the totals pinned at the bottom. */
+  .cart {
+    overflow-y: auto;
+  }
+
+  .cart-body {
+    min-height: min-content;
+  }
+
+  .cart-lines,
+  .open-orders {
+    flex: none;
+    overflow: visible;
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  .cart-lines .empty {
+    padding: 16px 12px;
+  }
+
+  /* Not sticky: at this height it would sit on top of the order lines —
+     the panel scrolls to the totals instead. */
+  .cart-footer {
+    position: static;
+  }
+
+  .cart-footer {
+    padding: 8px 12px 10px;
+  }
+
+  .cart-body > .input,
+  .segmented,
+  .append-banner {
+    margin-left: 12px;
+    margin-right: 12px;
+  }
+
+  .cart-footer .checkbox,
+  .cart-footer > .input {
+    display: none; /* the kitchen note stays available on bigger screens */
+  }
+
+  .btn-lg {
+    padding: 10px 14px;
+    font-size: 15px;
+  }
+
+  .totals .strong,
+  .receipt-totals .strong {
+    font-size: 17px;
+  }
+
+  .modal {
+    max-height: calc(100dvh - 16px);
+    padding: 16px;
+  }
+
+  .keypad .key {
+    height: 40px;
+    font-size: 17px;
+  }
+
+  .login-card {
+    padding: 16px;
+  }
+
+  .pin-dots {
+    margin-bottom: 10px;
+  }
+}
+
+/* Wide screens: give the caisse panel and the cards a little more room
+   instead of stretching a phone-sized layout across the desk. */
+@media (min-width: 1700px) {
+  :root {
+    --cart-width: 460px;
+  }
+
+  .product-grid {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 14px;
+  }
+
+  .product-image {
+    height: 140px;
+  }
+}
+
+/* Touch screens: no pointer precision, so every control gets a finger-sized
+   hit area (Apple/Google both recommend ~44px; 38px is the practical floor
+   for dense admin tables). */
+@media (pointer: coarse) {
+  .btn-sm {
+    min-height: 38px;
+  }
+
+  .category-list .btn-link,
+  .btn-link {
+    min-height: 34px;
+    padding: 0 4px;
+  }
+
+  .qty button {
+    width: 38px;
+    height: 38px;
+  }
+
+  .cart-line-remove {
+    width: 36px;
+    height: 36px;
+  }
+
+  .tab {
+    padding: 10px 16px;
+  }
+
+  .chip {
+    padding: 9px 12px;
+  }
+
+  .segmented button {
+    padding: 11px 8px;
+  }
+
+  .quick-amounts button {
+    padding: 11px 0;
+  }
+
+  .table .actions .btn {
+    min-height: 38px;
+  }
+}
+
+/* Very small phones: keep two readable columns and tighten the chrome. */
+@media (max-width: 380px) {
+  .appbar {
+    gap: 6px;
+    padding: 0 10px;
+  }
+
+  .appbar-name {
+    font-size: 15px;
+  }
+
+  .user-menu {
+    gap: 4px;
+  }
+
+  .menu-toolbar,
+  .product-grid {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+
+  .product-grid {
+    gap: 8px;
+  }
+
+  .product-image {
+    height: 96px;
+  }
+
+  .stat-row {
+    grid-template-columns: 1fr;
+  }
+
+  .role-cards {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .keypad .key {
+    height: 54px;
+  }
+}
+
+/* Minimum comfortable size for the small controls, whatever the pointer:
+   27–30px was tight even with a mouse. Touch screens get more via the
+   pointer: coarse block above. */
+.btn-sm {
+  min-height: 34px;
+}
+
+.segmented-sm button {
+  padding: 8px 12px;
+}
+
+.category-list .btn-link,
+.hbar-label .btn-link {
+  min-height: 30px;
+  padding: 0 4px;
+}
+
+.stock-btn {
+  min-height: 34px;
+}
+
+/* The period chips must always be reachable: when they don't fit they scroll
+   sideways instead of being clipped by the card. */
+.chips {
+  max-width: 100%;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.chips::-webkit-scrollbar {
+  display: none;
+}
+
+.chip {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+/* ---------- App bar: collapse gracefully as the width shrinks ---------- */
+
+.appbar-name,
+.appbar-subtitle,
+.admin-nav button,
+.user-name,
+.appbar-actions .btn {
+  white-space: nowrap;
+}
+
+.admin-nav {
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.admin-nav::-webkit-scrollbar {
+  display: none;
+}
+
+/* Drop what is decorative before what is useful: the "Administration" badge
+   and the user's name go first, then the navigation labels. */
+@media (max-width: 1320px) {
+  .appbar-subtitle {
+    display: none;
+  }
+
+  .user-name span {
+    display: none;
+  }
+}
+
+@media (max-width: 1120px) {
+  .admin-nav button span {
+    display: none;
+  }
+
+  .admin-nav button {
+    padding: 8px 12px;
+  }
+}
+
+/* Category names stay on one line: wrapping them made the rows twice as tall
+   and the side panel ragged. */
+.table td[data-label='Catégorie'],
+.category-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.category-list li {
+  min-width: 0;
+}
