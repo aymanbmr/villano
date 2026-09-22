@@ -37,6 +37,7 @@ export function SalesHistory() {
     return orders.filter(
       (o) =>
         o.ticketNumber.toLowerCase().includes(q) ||
+        (o.waiterName ?? '').toLowerCase().includes(q) ||
         (o.tableNumber ?? '').toLowerCase() === q ||
         o.items.some((i) => i.productName.toLowerCase().includes(q)),
     );
@@ -78,7 +79,7 @@ export function SalesHistory() {
         <input
           type="search"
           className="search"
-          placeholder="N° ticket, table ou produit…"
+          placeholder="N° ticket, table, serveur ou produit…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
@@ -92,6 +93,7 @@ export function SalesHistory() {
             <th>Ticket</th>
             <th>Date</th>
             <th>Table</th>
+            <th>Serveur</th>
             <th>Articles</th>
             <th>Paiement</th>
             <th className="num">Total</th>
@@ -101,7 +103,7 @@ export function SalesHistory() {
         <tbody>
           {visible.length === 0 && (
             <tr>
-              <td colSpan={7} className="empty">
+              <td colSpan={8} className="empty">
                 Aucune commande sur cette période.
               </td>
             </tr>
@@ -118,6 +120,9 @@ export function SalesHistory() {
                 </td>
                 <td data-label="Date">{formatDateTime(o.paidAt ?? o.createdAt)}</td>
                 <td data-label="Table">{orderLabel(o)}</td>
+                <td data-label="Serveur">
+                  {o.waiterName ?? <span className="muted">—</span>}
+                </td>
                 <td data-label="Articles">
                   {expanded ? (
                     <ul className="order-lines">
