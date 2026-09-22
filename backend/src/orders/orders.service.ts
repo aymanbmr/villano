@@ -4,8 +4,9 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Between, DataSource, EntityManager, FindOptionsWhere, Repository } from 'typeorm';
+import { Between, DataSource, EntityManager, FindOptionsWhere, IsNull, Repository } from 'typeorm';
 import { Product } from '../products/product.entity.js';
+import { WorkDay } from '../work-days/work-day.entity.js';
 import { Order, OrderItem, OrderStatus } from './order.entity.js';
 import {
   AddItemsDto,
@@ -25,6 +26,7 @@ const localDay = (s: string) => {
 
 // Error messages are shown as-is to the cashier, hence French
 const TABLE_REQUIRED = 'Le numéro de table est obligatoire pour une commande sur place';
+const DAY_CLOSED = 'Ouvrez la journée avant de prendre des commandes';
 
 @Injectable()
 export class OrdersService {
@@ -61,6 +63,9 @@ export class OrdersService {
   // preparing). Payment normally happens later via pay().
   create(dto: CreateOrderDto) {
     return this.dataSource.transaction(async (manager) => {
+      const openDay = await manager.getRepository(WorkDay).findOne({ where: { closedAt: IsNull() } });
+      if (!openDay) throw new BadRequestException(DAY_CLOSED);
+
       const orderType = dto.orderType ?? 'dine_in';
       const tableNumber = dto.tableNumber?.trim() || null;
       if (orderType === 'dine_in' && !tableNumber) {

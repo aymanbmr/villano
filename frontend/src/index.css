@@ -239,6 +239,16 @@ select.input {
   background: rgba(255, 255, 255, 0.08);
 }
 
+.workday-pill {
+  color: #86efac;
+  background: rgba(34, 197, 94, 0.12);
+  border-color: rgba(34, 197, 94, 0.35);
+}
+
+.workday-pill:hover {
+  background: rgba(34, 197, 94, 0.2);
+}
+
 .btn-sm {
   padding: 6px 10px;
   font-size: 13px;

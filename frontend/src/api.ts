@@ -115,7 +115,10 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     headers: { 'Content-Type': 'application/json', ...authHeaders(), ...init?.headers },
   });
   if (!res.ok) return fail(res);
-  return res.json() as Promise<T>;
+  // A handler returning null/undefined (e.g. "no work day open") reaches the
+  // browser as an empty body: res.json() would throw on it.
+  const text = await res.text();
+  return (text ? JSON.parse(text) : null) as T;
 }
 
 const json = (method: string, body: unknown): RequestInit => ({
@@ -147,6 +150,31 @@ export const api = {
     request<Order>(`/orders/${orderId}/items/${itemId}`, json('PATCH', { quantity })),
   deleteOrder: (orderId: number) =>
     request<{ deleted: boolean }>(`/orders/${orderId}`, { method: 'DELETE' }),
+};
+
+// ---------- Journée de travail (ouverture/clôture manuelle de la caisse) ----------
+
+export interface WorkDaySummary {
+  orders: number;
+  revenue: number;
+  cash: number;
+  card: number;
+}
+
+export interface WorkDay {
+  id: number;
+  openedAt: string;
+  closedAt: string | null;
+  openedBy: string;
+  closedBy: string | null;
+  summary: WorkDaySummary;
+}
+
+export const workDayApi = {
+  // null = no day currently open
+  current: () => request<WorkDay | null>('/work-day/current'),
+  open: () => request<WorkDay>('/work-day/open', { method: 'POST' }),
+  close: (id: number) => request<WorkDay>(`/work-day/${id}/close`, { method: 'PATCH' }),
 };
 
 export const CURRENCY = 'DH';

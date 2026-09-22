@@ -2,12 +2,14 @@ import { useCallback, useEffect, useState } from 'react';
 import {
   api,
   ApiError,
+  workDayApi,
   type Category,
   type CreateOrderPayload,
   type Order,
   type PayOrderPayload,
   type Product,
   type UpdateOrderPayload,
+  type WorkDay,
   formatPrice,
   orderLabel,
 } from '../api';
@@ -21,6 +23,8 @@ import { usePrint } from '../usePrint';
 import { AppBar } from '../components/AppBar';
 import { UserMenu } from '../components/UserMenu';
 import { Icon } from '../components/Icon';
+import { WorkDayButton } from '../components/WorkDayButton';
+import { DayClosedScreen } from '../components/DayClosedScreen';
 
 type View = 'new' | 'open';
 type MobilePanel = 'menu' | 'cart';
@@ -35,6 +39,8 @@ export function CaissePage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [pendingOrders, setPendingOrders] = useState<Order[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
+  // undefined = not checked yet, null = closed, object = the open day
+  const [workDay, setWorkDay] = useState<WorkDay | null | undefined>(undefined);
 
   const [view, setView] = useState<View>('new');
   // Small screens (waiter's phone): show either the menu or the cart, full screen
@@ -68,14 +74,16 @@ export function CaissePage() {
 
   const load = useCallback(async () => {
     try {
-      const [cats, prods, pending] = await Promise.all([
+      const [cats, prods, pending, day] = await Promise.all([
         api.categories(),
         api.products(),
         api.pendingOrders(),
+        workDayApi.current(),
       ]);
       setCategories(cats);
       setProducts(prods);
       setPendingOrders(pending);
+      setWorkDay(day);
       cart.syncProducts(prods);
       setLoadError(null);
     } catch (e) {
@@ -217,10 +225,27 @@ export function CaissePage() {
     .filter((o) => o.orderType === 'dine_in' && o.tableNumber && o.id !== appendTo?.id)
     .map((o) => o.tableNumber as string);
 
+  if (workDay === null) {
+    return <DayClosedScreen onOpened={setWorkDay} />;
+  }
+
   return (
     <>
       <div className={`pos show-${mobilePanel}`}>
-        <AppBar actions={<UserMenu showAdminLink />} />
+        <AppBar
+          actions={
+            <>
+              {workDay && (
+                <WorkDayButton
+                  workDay={workDay}
+                  pendingCount={pendingOrders.length}
+                  onClosed={() => setWorkDay(null)}
+                />
+              )}
+              <UserMenu showAdminLink />
+            </>
+          }
+        />
         {loadError ? (
           <div className="load-error">
             <p>{loadError}</p>
