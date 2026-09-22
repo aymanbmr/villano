@@ -1,6 +1,7 @@
 import { createPortal } from 'react-dom';
 import { formatPrice, orderLabel, type Order } from '../api';
 import { RESTAURANT } from '../config';
+import { LOGO_MARK_DATA_URL } from '../assets/logoMark';
 
 // kitchen: what to prepare (big quantities, no prices)
 // bill:    the pre-bill handed to the customer before paying
@@ -37,7 +38,7 @@ export function PrintTicket({ kind, order }: PrintJob) {
   return createPortal(
     <div className={`ticket-print ticket-${kind}`}>
       <div className="tp-center">
-        <img className="tp-logo" src="/logo/villano-mark.png" alt="" width={38} height={52} />
+        <img className="tp-logo" src={LOGO_MARK_DATA_URL} alt="" width={38} height={52} />
         <div className="tp-brand">{RESTAURANT.name}</div>
         {kind !== 'kitchen' && (
           <>

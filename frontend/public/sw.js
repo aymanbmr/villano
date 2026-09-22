@@ -6,7 +6,7 @@
 //   - hashed build assets (/assets/*): cache first (their name changes on build)
 //   - product photos (/uploads/*): cache first, refreshed in the background
 //   - /api/*: never cached — the app handles offline itself
-const VERSION = 'villano-v2';
+const VERSION = 'villano-v3';
 const SHELL = `${VERSION}-shell`;
 const MEDIA = `${VERSION}-media`;
 
@@ -96,7 +96,11 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  if (url.pathname.startsWith('/assets/') || url.pathname.startsWith('/icons/')) {
+  if (
+    url.pathname.startsWith('/assets/') ||
+    url.pathname.startsWith('/icons/') ||
+    url.pathname.startsWith('/logo/')
+  ) {
     event.respondWith(serve(request, SHELL));
     return;
   }
