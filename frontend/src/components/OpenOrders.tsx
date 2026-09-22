@@ -73,6 +73,11 @@ export function OpenOrders({
               >
                 <div>
                   <div className="open-order-title">
+                    {order.offline && (
+                      <span className="offline-chip" title="Enregistrée sur ce poste, en attente d’envoi">
+                        hors ligne
+                      </span>
+                    )}
                     {orderLabel(order)}
                     {order.waiterName && <span className="muted"> · {order.waiterName}</span>}
                   </div>

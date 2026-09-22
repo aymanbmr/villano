@@ -65,8 +65,20 @@ export class OrdersService {
   // preparing). Payment normally happens later via pay().
   create(dto: CreateOrderDto) {
     return this.dataSource.transaction(async (manager) => {
-      const openDay = await manager.getRepository(WorkDay).findOne({ where: { closedAt: IsNull() } });
-      if (!openDay) throw new BadRequestException(DAY_CLOSED);
+      // An order taken offline carries its own id and timestamp: replaying it
+      // must never duplicate, and it records past activity (so the work-day
+      // gate and the stock check, both about "right now", don't apply).
+      const offline = Boolean(dto.clientId && dto.occurredAt);
+      if (dto.clientId) {
+        const already = await manager.getRepository(Order).findOneBy({ clientId: dto.clientId });
+        if (already) return already;
+      }
+      if (!offline) {
+        const openDay = await manager
+          .getRepository(WorkDay)
+          .findOne({ where: { closedAt: IsNull() } });
+        if (!openDay) throw new BadRequestException(DAY_CLOSED);
+      }
 
       const orderType = dto.orderType ?? 'dine_in';
       const tableNumber = dto.tableNumber?.trim() || null;
@@ -77,9 +89,13 @@ export class OrdersService {
       if (orderType === 'dine_in' && !waiter) {
         throw new BadRequestException(WAITER_REQUIRED);
       }
-      const items = await this.reserveItems(manager, dto.items, []);
+      const items = await this.reserveItems(manager, dto.items, [], offline);
       const order = manager.getRepository(Order).create({
-        ticketNumber: await this.nextTicketNumber(manager.getRepository(Order)),
+        ticketNumber: await this.nextTicketNumber(
+          manager.getRepository(Order),
+          offline ? new Date(dto.occurredAt!) : undefined,
+        ),
+        clientId: dto.clientId ?? null,
         orderType,
         tableNumber,
         waiterId: waiter?.id ?? null,
@@ -90,7 +106,15 @@ export class OrdersService {
       });
       this.recomputeTotals(order);
       if (dto.payment) this.applyPayment(order, dto.payment);
-      return manager.getRepository(Order).save(order);
+      const saved = await manager.getRepository(Order).save(order);
+      if (offline) {
+        // createdAt is filled by @CreateDateColumn; put the real time back
+        await manager.getRepository(Order).update(saved.id, {
+          createdAt: new Date(dto.occurredAt!),
+        });
+        saved.createdAt = new Date(dto.occurredAt!);
+      }
+      return saved;
     });
   }
 
@@ -243,10 +267,14 @@ export class OrdersService {
 
   // Checks stock, decrements it, and returns the merged list of lines
   // (a product already on the order gets its quantity increased).
+  // force = the sale already happened offline: record it even if the product
+  // was hidden meanwhile or the stock count no longer covers it (it may go
+  // negative, which the manager fixes from the admin stock screen).
   private async reserveItems(
     manager: EntityManager,
     requested: OrderItemDto[],
     existing: OrderItem[],
+    force = false,
   ) {
     const products = manager.getRepository(Product);
     const items = [...existing];
@@ -259,13 +287,15 @@ export class OrdersService {
     for (const [productId, quantity] of wanted) {
       const product = await products.findOneBy({ id: productId });
       if (!product) throw new NotFoundException(`Produit ${productId} introuvable`);
-      if (!product.isAvailable) {
-        throw new BadRequestException(`« ${product.name} » n'est pas disponible`);
-      }
-      if (product.stock < quantity) {
-        throw new BadRequestException(
-          `Stock insuffisant pour « ${product.name} » (demandé ${quantity}, reste ${product.stock})`,
-        );
+      if (!force) {
+        if (!product.isAvailable) {
+          throw new BadRequestException(`« ${product.name} » n'est pas disponible`);
+        }
+        if (product.stock < quantity) {
+          throw new BadRequestException(
+            `Stock insuffisant pour « ${product.name} » (demandé ${quantity}, reste ${product.stock})`,
+          );
+        }
       }
       product.stock -= quantity;
       await products.save(product);
@@ -312,12 +342,12 @@ export class OrdersService {
     order.amountPaid = amountPaid;
     order.changeGiven = round2(amountPaid - order.total);
     order.status = 'paid';
-    order.paidAt = new Date();
+    order.paidAt = dto.paidAt ? new Date(dto.paidAt) : new Date();
   }
 
   // Ticket numbers restart every day: 20260920-001, 20260920-002, ...
-  private async nextTicketNumber(repo: Repository<Order>) {
-    const today = new Date();
+  private async nextTicketNumber(repo: Repository<Order>, when?: Date) {
+    const today = when ?? new Date();
     const y = today.getFullYear();
     const m = String(today.getMonth() + 1).padStart(2, '0');
     const d = String(today.getDate()).padStart(2, '0');

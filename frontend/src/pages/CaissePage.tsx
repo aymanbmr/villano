@@ -26,6 +26,8 @@ import { UserMenu } from '../components/UserMenu';
 import { Icon } from '../components/Icon';
 import { WorkDayButton } from '../components/WorkDayButton';
 import { DayClosedScreen } from '../components/DayClosedScreen';
+import { ConnectionBanner } from '../components/ConnectionBanner';
+import { useOffline } from '../offline';
 
 type View = 'new' | 'open';
 type MobilePanel = 'menu' | 'cart';
@@ -43,6 +45,7 @@ export function CaissePage() {
   const [loadError, setLoadError] = useState<string | null>(null);
   // undefined = not checked yet, null = closed, object = the open day
   const [workDay, setWorkDay] = useState<WorkDay | null | undefined>(undefined);
+  const { online } = useOffline();
 
   const [view, setView] = useState<View>('new');
   // Small screens (waiter's phone): show either the menu or the cart, full screen
@@ -229,7 +232,9 @@ export function CaissePage() {
     .filter((o) => o.orderType === 'dine_in' && o.tableNumber && o.id !== appendTo?.id)
     .map((o) => o.tableNumber as string);
 
-  if (workDay === null) {
+  // Offline the day state can only be the last known one: taking orders must
+  // never be blocked by it (they sync once the server is back).
+  if (workDay === null && online) {
     return <DayClosedScreen onOpened={setWorkDay} />;
   }
 
@@ -250,6 +255,7 @@ export function CaissePage() {
             </>
           }
         />
+        <ConnectionBanner onSynced={() => void load()} />
         {loadError ? (
           <div className="load-error">
             <p>{loadError}</p>

@@ -141,6 +141,26 @@ L'application est une **PWA** : elle s'installe sur l'écran d'accueil et se lan
 
 En production, servir l'app en **HTTPS** (certificat) pour que l'installation soit proposée automatiquement et que le mode hors-ligne soit possible.
 
+## Mode hors ligne (coupure réseau)
+
+Si le serveur devient injoignable (Wi-Fi coupé, PC serveur redémarré), la
+caisse continue de fonctionner :
+
+- le menu, les photos et l'application elle-même sont en cache (service worker) ;
+- les commandes prises, encaissées, modifiées ou annulées sont enregistrées sur
+  le poste et marquées « hors ligne » ; un bandeau orange indique le nombre en attente ;
+- dès que le serveur répond à nouveau, tout est envoyé automatiquement avec
+  l'heure réelle de la commande et du paiement ;
+- chaque commande porte un identifiant unique généré par la caisse : un envoi
+  rejoué ne crée jamais de doublon.
+
+À savoir : les tickets imprimés hors ligne portent un numéro provisoire
+(« Hors ligne #1 ») ; le numéro définitif est attribué à la synchronisation.
+Si un produit manquait de stock, la commande est quand même enregistrée (le
+stock peut devenir négatif, à corriger dans Admin → Menu & stock). En cas de
+refus du serveur, le bandeau affiche l'erreur et propose de réessayer ou
+d'abandonner.
+
 ## Impression des tickets
 
 Trois tickets, formatés pour une imprimante thermique 80 mm et envoyés via la

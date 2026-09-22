@@ -2,6 +2,28 @@
 // /api and /uploads to localhost:3000 (see vite.config.ts).
 
 import { getSession, setSession, type AuthUser } from './auth';
+import {
+  applyPendingStock,
+  cacheGet,
+  cacheSet,
+  findLocal,
+  getLocalOrders,
+  localAddItems,
+  localPay,
+  localRemove,
+  localToOrder,
+  localUpdateItem,
+  localUpdateOrder,
+  applyOpsToOrders,
+  markOffline,
+  markOnline,
+  paidOptimistically,
+  OfflineError,
+  queueOp,
+  queueOrder,
+  setSender,
+  sync,
+} from './offline';
 
 export interface Category {
   id: number;
@@ -64,6 +86,9 @@ export interface Order {
   note: string | null;
   items: OrderItem[];
   createdAt: string;
+  // Set on orders taken offline and not yet sent to the server
+  offline?: boolean;
+  clientId?: string | null;
 }
 
 export interface OrderLinePayload {
@@ -82,6 +107,8 @@ export interface CreateOrderPayload {
   orderType?: OrderType;
   tableNumber?: string;
   waiterId?: number;
+  // Kept locally so an offline order can display/print the waiter's name
+  waiterName?: string | null;
   note?: string;
   // Pay immediately instead of leaving the order open
   payment?: PayOrderPayload;
@@ -122,11 +149,36 @@ async function fail(res: Response): Promise<never> {
   throw new ApiError(res.status, message);
 }
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch('/api' + path, {
+// The server itself never answers these: they come from whatever sits in
+// front of it (dev proxy, reverse proxy) when the API is down. A genuine
+// Nest error always carries a JSON body, so it is reported normally.
+function isUnreachable(res: Response) {
+  if (res.status === 502 || res.status === 503 || res.status === 504) return true;
+  return res.status === 500 && !(res.headers.get('content-type') ?? '').includes('json');
+}
+
+function rawSend(path: string, init: RequestInit) {
+  return fetch('/api' + path, {
     ...init,
-    headers: { 'Content-Type': 'application/json', ...authHeaders(), ...init?.headers },
+    headers: { 'Content-Type': 'application/json', ...authHeaders(), ...init.headers },
   });
+}
+setSender(rawSend);
+
+async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  let res: Response;
+  try {
+    res = await rawSend(path, init ?? {});
+  } catch {
+    // fetch only throws when the server could not be reached at all
+    markOffline();
+    throw new OfflineError();
+  }
+  if (isUnreachable(res)) {
+    markOffline();
+    throw new OfflineError();
+  }
+  markOnline();
   if (!res.ok) return fail(res);
   // A handler returning null/undefined (e.g. "no work day open") reaches the
   // browser as an empty body: res.json() would throw on it.
@@ -145,25 +197,167 @@ export const authApi = {
   me: () => request<AuthUser>('/auth/me'),
 };
 
+// Reads the caisse must keep working without the server: the last successful
+// response is cached and served when the server is unreachable.
+async function cached<T>(key: string, load: () => Promise<T>): Promise<T> {
+  try {
+    const value = await load();
+    cacheSet(key, value);
+    return value;
+  } catch (e) {
+    if (e instanceof OfflineError) {
+      const value = cacheGet<T>(key);
+      if (value !== null) return value;
+    }
+    throw e;
+  }
+}
+
+// An order taken offline lives in the outbox and carries a negative id.
+const isLocal = (orderId: number) => orderId < 0;
+
+const cachedOrder = (orderId: number): Order | null =>
+  (cacheGet<Order[]>('pendingOrders') ?? []).find((o) => o.id === orderId) ?? null;
+
+const localAsOrder = (localId: number): Order => {
+  const local = findLocal(localId);
+  if (!local) throw new Error('Commande hors ligne introuvable');
+  return localToOrder(local, cacheGet<Product[]>('products') ?? []);
+};
+
 export const api = {
-  categories: () => request<Category[]>('/categories'),
-  products: () => request<Product[]>('/products'),
-  staff: () => request<StaffMember[]>('/staff'),
-  pendingOrders: () => request<Order[]>('/orders?status=pending'),
-  createOrder: (payload: CreateOrderPayload) => request<Order>('/orders', json('POST', payload)),
-  addItems: (orderId: number, items: OrderLinePayload[]) =>
-    request<Order>(`/orders/${orderId}/items`, json('POST', { items })),
-  payOrder: (orderId: number, payload: PayOrderPayload) =>
-    request<Order>(`/orders/${orderId}/pay`, json('PATCH', payload)),
-  cancelOrder: (orderId: number) =>
-    request<Order>(`/orders/${orderId}/cancel`, { method: 'PATCH' }),
-  updateOrder: (orderId: number, payload: UpdateOrderPayload) =>
-    request<Order>(`/orders/${orderId}`, json('PATCH', payload)),
+  categories: () => cached('categories', () => request<Category[]>('/categories')),
+  // Stock shown offline accounts for what was already sold from the outbox
+  products: async () => applyPendingStock(await cached('products', () => request<Product[]>('/products'))),
+  staff: () => cached('staff', () => request<StaffMember[]>('/staff')),
+
+  // Server list + orders still waiting in the outbox, newest last
+  pendingOrders: async (): Promise<Order[]> => {
+    const products = cacheGet<Product[]>('products') ?? [];
+    const locals = getLocalOrders()
+      .filter((l) => !l.payment)
+      .map((l) => localToOrder(l, products));
+    try {
+      const server = await request<Order[]>('/orders?status=pending');
+      cacheSet('pendingOrders', server);
+      return [...applyOpsToOrders(server), ...locals];
+    } catch (e) {
+      if (e instanceof OfflineError) {
+        return [...applyOpsToOrders(cacheGet<Order[]>('pendingOrders') ?? []), ...locals];
+      }
+      throw e;
+    }
+  },
+
+  createOrder: async (payload: CreateOrderPayload): Promise<Order> => {
+    try {
+      return await request<Order>('/orders', json('POST', payload));
+    } catch (e) {
+      if (!(e instanceof OfflineError)) throw e;
+      return localToOrder(queueOrder(payload), cacheGet<Product[]>('products') ?? []);
+    }
+  },
+
+  addItems: async (orderId: number, items: OrderLinePayload[]): Promise<Order> => {
+    if (isLocal(orderId)) {
+      localAddItems(orderId, items);
+      return localAsOrder(orderId);
+    }
+    try {
+      return await request<Order>(`/orders/${orderId}/items`, json('POST', { items }));
+    } catch (e) {
+      if (!(e instanceof OfflineError)) throw e;
+      queueOp({ orderId, kind: 'addItems', payload: { items } });
+      const known = cachedOrder(orderId);
+      if (known) return applyOpsToOrders([known])[0] ?? known;
+      throw e;
+    }
+  },
+
+  payOrder: async (orderId: number, payload: PayOrderPayload): Promise<Order> => {
+    if (isLocal(orderId)) {
+      localPay(orderId, payload);
+      return localAsOrder(orderId);
+    }
+    try {
+      return await request<Order>(`/orders/${orderId}/pay`, json('PATCH', payload));
+    } catch (e) {
+      if (!(e instanceof OfflineError)) throw e;
+      const paidAt = new Date().toISOString();
+      queueOp({ orderId, kind: 'pay', payload: { ...payload, paidAt } });
+      const known = cachedOrder(orderId);
+      // The payment is recorded here and will be sent; show the receipt as usual
+      if (known) return paidOptimistically(known, payload, paidAt);
+      throw e;
+    }
+  },
+
+  cancelOrder: async (orderId: number): Promise<Order> => {
+    if (isLocal(orderId)) {
+      const order = localAsOrder(orderId);
+      localRemove(orderId); // never sent, so nothing to cancel server-side
+      return { ...order, status: 'cancelled' };
+    }
+    try {
+      return await request<Order>(`/orders/${orderId}/cancel`, { method: 'PATCH' });
+    } catch (e) {
+      if (!(e instanceof OfflineError)) throw e;
+      queueOp({ orderId, kind: 'cancel' });
+      const known = cachedOrder(orderId);
+      if (known) return { ...known, status: 'cancelled', offline: true };
+      throw e;
+    }
+  },
+
+  updateOrder: async (orderId: number, payload: UpdateOrderPayload): Promise<Order> => {
+    if (isLocal(orderId)) {
+      localUpdateOrder(orderId, payload);
+      return localAsOrder(orderId);
+    }
+    try {
+      return await request<Order>(`/orders/${orderId}`, json('PATCH', payload));
+    } catch (e) {
+      if (!(e instanceof OfflineError)) throw e;
+      queueOp({ orderId, kind: 'update', payload });
+      const known = cachedOrder(orderId);
+      if (known) return { ...known, ...payload, offline: true } as Order;
+      throw e;
+    }
+  },
+
   // quantity 0 removes the line
-  updateItem: (orderId: number, itemId: number, quantity: number) =>
-    request<Order>(`/orders/${orderId}/items/${itemId}`, json('PATCH', { quantity })),
-  deleteOrder: (orderId: number) =>
-    request<{ deleted: boolean }>(`/orders/${orderId}`, { method: 'DELETE' }),
+  updateItem: async (orderId: number, itemId: number, quantity: number): Promise<Order> => {
+    if (isLocal(orderId)) {
+      // local item ids are -(index + 1)
+      localUpdateItem(orderId, Math.abs(itemId) - 1, quantity);
+      return localAsOrder(orderId);
+    }
+    try {
+      return await request<Order>(`/orders/${orderId}/items/${itemId}`, json('PATCH', { quantity }));
+    } catch (e) {
+      if (!(e instanceof OfflineError)) throw e;
+      queueOp({ orderId, kind: 'updateItem', payload: { itemId, body: { quantity } } });
+      const known = cachedOrder(orderId);
+      if (known) return applyOpsToOrders([known])[0] ?? known;
+      throw e;
+    }
+  },
+
+  deleteOrder: async (orderId: number): Promise<{ deleted: boolean }> => {
+    if (isLocal(orderId)) {
+      localRemove(orderId);
+      return { deleted: true };
+    }
+    try {
+      return await request<{ deleted: boolean }>(`/orders/${orderId}`, { method: 'DELETE' });
+    } catch (e) {
+      if (!(e instanceof OfflineError)) throw e;
+      queueOp({ orderId, kind: 'delete' });
+      return { deleted: true };
+    }
+  },
+
+  syncOutbox: sync,
 };
 
 // ---------- Journée de travail (ouverture/clôture manuelle de la caisse) ----------
@@ -185,8 +379,9 @@ export interface WorkDay {
 }
 
 export const workDayApi = {
-  // null = no day currently open
-  current: () => request<WorkDay | null>('/work-day/current'),
+  // null = no day currently open. Cached: offline, the caisse trusts the last
+  // known state rather than blocking service.
+  current: () => cached('workDay', () => request<WorkDay | null>('/work-day/current')),
   open: () => request<WorkDay>('/work-day/open', { method: 'POST' }),
   close: (id: number) => request<WorkDay>(`/work-day/${id}/close`, { method: 'PATCH' }),
 };

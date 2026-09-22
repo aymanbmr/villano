@@ -2986,3 +2986,73 @@ select.input {
     min-width: 0;
   }
 }
+
+/* ---------- Connexion / mode hors ligne ---------- */
+
+.conn-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+  padding: 8px 20px;
+  font-size: 13px;
+  font-weight: 600;
+  grid-column: 1 / -1;
+}
+
+.conn-banner.is-off {
+  color: #7c2d12;
+  background: #ffedd5;
+  border-bottom: 1px solid #fed7aa;
+}
+
+.conn-banner.is-sync {
+  color: #1e3a8a;
+  background: var(--info-soft);
+  border-bottom: 1px solid #bfdbfe;
+}
+
+.conn-banner.is-ok {
+  color: var(--success);
+  background: var(--success-soft);
+  border-bottom: 1px solid #bbf7d0;
+}
+
+.conn-banner .btn {
+  margin-left: auto;
+  padding: 4px 10px;
+}
+
+.conn-banner .btn + .btn {
+  margin-left: 6px;
+}
+
+.conn-error {
+  font-weight: 400;
+  opacity: 0.85;
+}
+
+.offline-chip {
+  display: inline-block;
+  margin-right: 6px;
+  padding: 1px 7px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  color: #7c2d12;
+  background: #ffedd5;
+  border-radius: 999px;
+  vertical-align: 1px;
+}
+
+@media (max-width: 860px) {
+  .conn-banner {
+    padding: 8px 14px;
+    font-size: 12px;
+  }
+
+  .conn-error {
+    display: none;
+  }
+}
