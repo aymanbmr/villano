@@ -163,7 +163,7 @@ Le logo Villano est utilisé partout : barre de l'application, écran de
 connexion, fenêtre d'ouverture de journée, tickets imprimés, icônes
 (navigateur, bureau Windows, application mobile).
 
-Sources :  (original) et 
+Sources : `brand/villano-logo.png` (original) et `frontend/public/logo/`
 (marque seule et logo complet, en noir et en blanc, fond transparent).
 
 Le thème reprend le logo : noir, blanc et gris. Les couleurs ne servent plus
