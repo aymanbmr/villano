@@ -22,3 +22,8 @@ export const Roles = (...roles: AppRole[]) => SetMetadata(ROLES_KEY, roles);
 // Shortcut for everything under the admin page
 export const ADMIN_ROLES: AppRole[] = ['admin', 'manager'];
 export const AdminOnly = () => Roles(...ADMIN_ROLES);
+
+// Opening and closing the caisse day is the cashier's job (the manager and
+// the owner can do it too); a waiter or a barman cannot.
+export const CAISSE_ROLES: AppRole[] = ['admin', 'manager', 'caissier'];
+export const CaisseOnly = () => Roles(...CAISSE_ROLES);

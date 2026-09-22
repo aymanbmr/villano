@@ -12,6 +12,17 @@ import { AppRole, AuthUser, IS_PUBLIC_KEY, ROLES_KEY } from './auth.decorators.j
 
 // Registered globally (APP_GUARD): every route needs a valid Bearer token
 // unless marked @Public(); @Roles() further restricts by role.
+const ROLE_LABELS: Record<string, string> = {
+  admin: 'administrateur',
+  manager: 'manager',
+  caissier: 'caissier',
+  serveur: 'serveur',
+  barman: 'barman',
+  cuisinier: 'cuisinier',
+  menage: 'agent d’entretien',
+};
+const roleLabel = (role: string) => ROLE_LABELS[role] ?? role;
+
 @Injectable()
 export class AuthGuard implements CanActivate {
   constructor(
@@ -37,7 +48,7 @@ export class AuthGuard implements CanActivate {
 
     const roles = this.reflector.getAllAndOverride<AppRole[]>(ROLES_KEY, targets);
     if (roles && !roles.includes(user.role)) {
-      throw new ForbiddenException('Accès réservé aux managers');
+      throw new ForbiddenException(`Accès réservé : ${roles.map(roleLabel).join(', ')}`);
     }
     return true;
   }

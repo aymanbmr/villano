@@ -57,6 +57,11 @@ export const logout = () => setSession(null);
 export const isAdmin = (user: AuthUser | null | undefined) =>
   user?.role === 'admin' || user?.role === 'manager';
 
+// Opening and closing the caisse day is reserved to the cashier, the manager
+// and the owner — a waiter or barman only takes orders (same rule server-side).
+export const canManageWorkDay = (user: AuthUser | null | undefined) =>
+  isAdmin(user) || user?.role === 'caissier';
+
 // React binding: re-renders when the session changes (login, logout, 401)
 export function useSession() {
   const [session, set] = useState(current);

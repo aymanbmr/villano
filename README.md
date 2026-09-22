@@ -141,6 +141,18 @@ L'application est une **PWA** : elle s'installe sur l'écran d'accueil et se lan
 
 En production, servir l'app en **HTTPS** (certificat) pour que l'installation soit proposée automatiquement et que le mode hors-ligne soit possible.
 
+## Journée de caisse
+
+La caisse ne prend des commandes que si la journée est ouverte.
+
+- **Ouvrir / clôturer la journée** : réservé au **caissier**, au **manager** et à
+  l'**administrateur**, et toujours manuel (rien ne s'ouvre tout seul à la connexion).
+- Un serveur, barman ou cuisinier qui se connecte avant l'ouverture voit
+  « La caisse n'est pas encore ouverte » sans bouton d'ouverture ; une fois la
+  journée ouverte il prend les commandes normalement, mais ne peut pas la clôturer.
+- La règle est appliquée aussi côté serveur (403), donc impossible à contourner
+  depuis un téléphone.
+
 ## Écrans supportés
 
 L'interface s'adapte de 320 px (petit téléphone) aux grands écrans :

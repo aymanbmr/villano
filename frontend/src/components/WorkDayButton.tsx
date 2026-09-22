@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { ApiError, formatPrice, workDayApi, type WorkDay } from '../api';
 import { Icon } from './Icon';
+import { canManageWorkDay, useSession } from '../auth';
 
 interface Props {
   workDay: WorkDay;
@@ -14,6 +15,8 @@ const timeOf = (iso: string) =>
 // AppBar pill showing the open day's start time; click opens the closing
 // summary popup (revenue so far, then a manual confirmation to close).
 export function WorkDayButton({ workDay, pendingCount, onClosed }: Props) {
+  const session = useSession();
+  const mayClose = canManageWorkDay(session?.user);
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -37,14 +40,19 @@ export function WorkDayButton({ workDay, pendingCount, onClosed }: Props) {
       <button
         type="button"
         className="btn btn-bar workday-pill"
-        onClick={() => setOpen(true)}
-        title={`Journée ouverte depuis ${timeOf(workDay.openedAt)}`}
+        onClick={() => mayClose && setOpen(true)}
+        aria-disabled={!mayClose}
+        title={
+          mayClose
+            ? `Journée ouverte depuis ${timeOf(workDay.openedAt)} — cliquer pour clôturer`
+            : `Journée ouverte depuis ${timeOf(workDay.openedAt)} — seul le caissier peut clôturer`
+        }
       >
         <Icon name="clipboard" size={15} />
         <span className="hide-sm">Journée depuis {timeOf(workDay.openedAt)}</span>
       </button>
 
-      {open && (
+      {open && mayClose && (
         <div className="modal-backdrop" role="dialog" aria-modal="true" onClick={() => !busy && setOpen(false)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-check">
