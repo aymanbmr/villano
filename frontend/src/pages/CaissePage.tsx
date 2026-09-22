@@ -25,7 +25,7 @@ import { AppBar } from '../components/AppBar';
 import { UserMenu } from '../components/UserMenu';
 import { Icon } from '../components/Icon';
 import { WorkDayButton } from '../components/WorkDayButton';
-import { DayClosedScreen } from '../components/DayClosedScreen';
+import { WorkDayModal } from '../components/WorkDayModal';
 import { ConnectionBanner } from '../components/ConnectionBanner';
 import { useOffline } from '../offline';
 
@@ -46,6 +46,9 @@ export function CaissePage() {
   // undefined = not checked yet, null = closed, object = the open day
   const [workDay, setWorkDay] = useState<WorkDay | null | undefined>(undefined);
   const { online } = useOffline();
+  // The "open the day" popup: shown after login while no day is open, and
+  // again if the server refuses an order for that reason.
+  const [dayPromptHidden, setDayPromptHidden] = useState(false);
 
   const [view, setView] = useState<View>('new');
   // Small screens (waiter's phone): show either the menu or the cart, full screen
@@ -158,7 +161,9 @@ export function CaissePage() {
       setSelectedOrderId(order.id);
       await load();
     } catch (e) {
-      setCartError(errorMessage(e));
+      const message = errorMessage(e);
+      setCartError(message);
+      if (/journée/i.test(message)) setDayPromptHidden(false);
       await load(); // stock may have changed under us
     } finally {
       setBusy(false);
@@ -234,9 +239,7 @@ export function CaissePage() {
 
   // Offline the day state can only be the last known one: taking orders must
   // never be blocked by it (they sync once the server is back).
-  if (workDay === null && online) {
-    return <DayClosedScreen onOpened={setWorkDay} />;
-  }
+  const askToOpenDay = workDay === null && online && !dayPromptHidden;
 
   return (
     <>
@@ -248,7 +251,11 @@ export function CaissePage() {
                 <WorkDayButton
                   workDay={workDay}
                   pendingCount={pendingOrders.length}
-                  onClosed={() => setWorkDay(null)}
+                  onClosed={() => {
+                    setWorkDay(null);
+                    // closing is deliberate: don't pop the question straight back up
+                    setDayPromptHidden(true);
+                  }}
                 />
               )}
               <UserMenu showAdminLink />
@@ -256,6 +263,9 @@ export function CaissePage() {
           }
         />
         <ConnectionBanner onSynced={() => void load()} />
+        {askToOpenDay && (
+          <WorkDayModal onOpened={setWorkDay} onDismiss={() => setDayPromptHidden(true)} />
+        )}
         {loadError ? (
           <div className="load-error">
             <p>{loadError}</p>
