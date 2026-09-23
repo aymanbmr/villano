@@ -24,7 +24,7 @@ import { usePrint } from '../usePrint';
 import { AppBar } from '../components/AppBar';
 import { UserMenu } from '../components/UserMenu';
 import { Icon } from '../components/Icon';
-import { WorkDayButton } from '../components/WorkDayButton';
+import { OpenDayButton, WorkDayButton } from '../components/WorkDayButton';
 import { WorkDayModal } from '../components/WorkDayModal';
 import { ConnectionBanner } from '../components/ConnectionBanner';
 import { useOffline } from '../offline';
@@ -247,6 +247,7 @@ export function CaissePage() {
         <AppBar
           actions={
             <>
+              {!workDay && <OpenDayButton onOpen={() => setDayPromptHidden(false)} />}
               {workDay && (
                 <WorkDayButton
                   workDay={workDay}

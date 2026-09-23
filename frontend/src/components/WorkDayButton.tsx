@@ -57,6 +57,30 @@ const timeOf = (iso: string) =>
     minute: '2-digit',
   });
 
+// Shown in the app bar while no day is open — typically after « Plus tard »:
+// one click brings the opening popup back. Waiters see it greyed out, since
+// only the cashier, the manager and the owner may open the day.
+export function OpenDayButton({ onOpen }: { onOpen: () => void }) {
+  const session = useSession();
+  const allowed = canManageWorkDay(session?.user);
+  return (
+    <button
+      type="button"
+      className="btn btn-bar workday-pill is-closed"
+      onClick={() => allowed && onOpen()}
+      aria-disabled={!allowed}
+      title={
+        allowed
+          ? 'Aucune journée ouverte — cliquer pour ouvrir'
+          : 'Aucune journée ouverte — le caissier doit l’ouvrir'
+      }
+    >
+      <Icon name="clipboard" size={15} />
+      <span className="hide-sm">{allowed ? 'Ouvrir la journée' : 'Journée fermée'}</span>
+    </button>
+  );
+}
+
 // AppBar pill showing the open day's start time; click opens the closing
 // summary popup (revenue so far, then a manual confirmation to close).
 export function WorkDayButton({ workDay, pendingCount, onClosed }: Props) {
