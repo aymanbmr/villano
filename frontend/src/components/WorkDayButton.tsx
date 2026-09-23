@@ -89,6 +89,9 @@ export function WorkDayButton({ workDay, pendingCount, onClosed }: Props) {
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // A day coming straight from the opening call (or from the offline cache)
+  // may not carry its summary yet: never crash the caisse for that.
+  const summary = workDay.summary ?? { orders: 0, revenue: 0, cash: 0, card: 0, byWaiter: [] };
 
   const confirmClose = async () => {
     setBusy(true);
@@ -144,23 +147,23 @@ export function WorkDayButton({ workDay, pendingCount, onClosed }: Props) {
               <div className="receipt-totals">
                 <div>
                   <span>Commandes encaissées</span>
-                  <span>{workDay.summary.orders}</span>
+                  <span>{summary.orders}</span>
                 </div>
                 <div>
                   <span>Espèces</span>
-                  <span>{formatPrice(workDay.summary.cash)}</span>
+                  <span>{formatPrice(summary.cash)}</span>
                 </div>
                 <div>
                   <span>Carte</span>
-                  <span>{formatPrice(workDay.summary.card)}</span>
+                  <span>{formatPrice(summary.card)}</span>
                 </div>
                 <div className="strong">
                   <span>Total</span>
-                  <span>{formatPrice(workDay.summary.revenue)}</span>
+                  <span>{formatPrice(summary.revenue)}</span>
                 </div>
               </div>
 
-              <WaiterBreakdown rows={workDay.summary.byWaiter} total={workDay.summary.revenue} />
+              <WaiterBreakdown rows={summary.byWaiter} total={summary.revenue} />
 
               {pendingCount > 0 && (
                 <div className="hint">

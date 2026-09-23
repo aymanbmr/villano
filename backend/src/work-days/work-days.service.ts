@@ -27,8 +27,10 @@ export class WorkDaysService {
   async open(openedBy: string) {
     const existing = await this.current();
     if (existing) throw new BadRequestException('Une journée est déjà ouverte');
-    const day = this.days.create({ openedBy });
-    return this.days.save(day);
+    const day = await this.days.save(this.days.create({ openedBy }));
+    // Same shape as /work-day/current: the caller gets a day with its summary
+    // (all zeros at this point) instead of a day without one.
+    return { ...day, summary: await this.summaryFor(day) };
   }
 
   async close(id: number, closedBy: string) {
