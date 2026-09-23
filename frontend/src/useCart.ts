@@ -1,12 +1,13 @@
 import { useCallback, useMemo, useState } from 'react';
 import type { Product } from './api';
+import { SHOW_STOCK } from './config';
 
 export interface CartLine {
   product: Product;
   quantity: number;
 }
 
-// Cart state for the caisse. Quantities are clamped to the product's stock
+// Cart state for the caisse. While stock is shown, quantities are clamped to it
 // so the cashier can never build an order the backend would reject.
 export function useCart() {
   const [lines, setLines] = useState<CartLine[]>([]);
@@ -15,9 +16,9 @@ export function useCart() {
     setLines((prev) => {
       const existing = prev.find((l) => l.product.id === product.id);
       if (!existing) {
-        return product.stock > 0 ? [...prev, { product, quantity: 1 }] : prev;
+        return !SHOW_STOCK || product.stock > 0 ? [...prev, { product, quantity: 1 }] : prev;
       }
-      if (existing.quantity >= product.stock) return prev;
+      if (SHOW_STOCK && existing.quantity >= product.stock) return prev;
       return prev.map((l) =>
         l.product.id === product.id ? { ...l, quantity: l.quantity + 1 } : l,
       );
@@ -29,7 +30,12 @@ export function useCart() {
       prev
         .map((l) =>
           l.product.id === productId
-            ? { ...l, quantity: Math.min(Math.max(0, quantity), l.product.stock) }
+            ? {
+                ...l,
+                quantity: SHOW_STOCK
+                  ? Math.min(Math.max(0, quantity), l.product.stock)
+                  : Math.max(0, quantity),
+              }
             : l,
         )
         .filter((l) => l.quantity > 0),
@@ -49,7 +55,10 @@ export function useCart() {
         .map((l) => {
           const fresh = products.find((p) => p.id === l.product.id);
           if (!fresh || !fresh.isAvailable) return null;
-          return { product: fresh, quantity: Math.min(l.quantity, fresh.stock) };
+          return {
+            product: fresh,
+            quantity: SHOW_STOCK ? Math.min(l.quantity, fresh.stock) : l.quantity,
+          };
         })
         .filter((l): l is CartLine => l !== null && l.quantity > 0),
     );

@@ -4,6 +4,7 @@ import { ProductForm } from './ProductForm';
 import { CategoriesAdmin } from './CategoriesAdmin';
 import { Icon } from '../../components/Icon';
 import { CategoryIcon } from '../../categoryIcons';
+import { SHOW_STOCK } from '../../config';
 
 const fail = (e: unknown) => (e instanceof ApiError ? e.message : 'Erreur réseau');
 
@@ -37,7 +38,7 @@ export function MenuAdmin() {
       .sort((a, b) => (a.category?.name ?? 'zzz').localeCompare(b.category?.name ?? 'zzz') || a.name.localeCompare(b.name));
   }, [products, search, filterCategory]);
 
-  const lowStock = products.filter((p) => p.stock <= p.lowStockThreshold).length;
+  const lowStock = SHOW_STOCK ? products.filter((p) => p.stock <= p.lowStockThreshold).length : 0;
 
   const run = async (action: () => Promise<unknown>) => {
     setError(null);
@@ -106,7 +107,7 @@ export function MenuAdmin() {
               <th>Produit</th>
               <th>Catégorie</th>
               <th className="num">Prix</th>
-              <th className="num">Stock</th>
+              {SHOW_STOCK && <th className="num">Stock</th>}
               <th>Statut</th>
               <th className="actions">Actions</th>
             </tr>
@@ -146,6 +147,7 @@ export function MenuAdmin() {
                     )}
                   </td>
                   <td className="num" data-label="Prix">{formatPrice(p.price)}</td>
+                  {SHOW_STOCK && (
                   <td className="num" data-label="Stock">
                     <button
                       type="button"
@@ -156,6 +158,7 @@ export function MenuAdmin() {
                       {p.stock}
                     </button>
                   </td>
+                  )}
                   <td data-label="Statut">
                     {p.isAvailable ? (
                       <span className="status status-on">Visible</span>

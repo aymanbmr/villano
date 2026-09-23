@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { adminApi, ApiError, type Category, type Product, type ProductPayload } from '../../api';
+import { SHOW_STOCK } from '../../config';
 
 interface Props {
   product: Product | null; // null = create
@@ -95,29 +96,33 @@ export function ProductForm({ product, categories, onSaved, onClose }: Props) {
             </select>
           </label>
 
-          <label className="field">
-            <span>Stock</span>
-            <input
-              className="input"
-              type="number"
-              min={0}
-              step="1"
-              value={stock}
-              onChange={(e) => setStock(e.target.value)}
-            />
-          </label>
+          {SHOW_STOCK && (
+            <>
+              <label className="field">
+                <span>Stock</span>
+                <input
+                  className="input"
+                  type="number"
+                  min={0}
+                  step="1"
+                  value={stock}
+                  onChange={(e) => setStock(e.target.value)}
+                />
+              </label>
 
-          <label className="field">
-            <span>Alerte stock bas à</span>
-            <input
-              className="input"
-              type="number"
-              min={0}
-              step="1"
-              value={lowStockThreshold}
-              onChange={(e) => setLowStockThreshold(e.target.value)}
-            />
-          </label>
+              <label className="field">
+                <span>Alerte stock bas à</span>
+                <input
+                  className="input"
+                  type="number"
+                  min={0}
+                  step="1"
+                  value={lowStockThreshold}
+                  onChange={(e) => setLowStockThreshold(e.target.value)}
+                />
+              </label>
+            </>
+          )}
 
           <label className="field field-full">
             <span>Description</span>

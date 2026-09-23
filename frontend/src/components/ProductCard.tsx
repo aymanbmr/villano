@@ -1,5 +1,6 @@
 import type { KeyboardEvent } from 'react';
 import { formatPrice, type Product } from '../api';
+import { SHOW_STOCK } from '../config';
 
 interface Props {
   product: Product;
@@ -11,9 +12,11 @@ interface Props {
 // sometimes fails to grow around the image + body and clips the price.
 export function ProductCard({ product, inCart, onAdd }: Props) {
   const remaining = product.stock - inCart;
-  const outOfStock = product.stock <= 0;
-  const lowStock = !outOfStock && product.stock <= product.lowStockThreshold;
-  const disabled = outOfStock || remaining <= 0;
+  // Stock hidden: nothing is ever out of stock, so the caisse never refuses
+  // a sale because a count was not kept up to date.
+  const outOfStock = SHOW_STOCK && product.stock <= 0;
+  const lowStock = SHOW_STOCK && !outOfStock && product.stock <= product.lowStockThreshold;
+  const disabled = SHOW_STOCK && (outOfStock || remaining <= 0);
 
   const add = () => {
     if (!disabled) onAdd(product);
@@ -50,10 +53,12 @@ export function ProductCard({ product, inCart, onAdd }: Props) {
           <div className="product-price">{formatPrice(product.price)}</div>
         </div>
         {product.description && <div className="product-desc">{product.description}</div>}
-        <div className={`product-stock${outOfStock ? ' is-out' : lowStock ? ' is-low' : ''}`}>
-          <span className="dot" />
-          {outOfStock ? 'Épuisé' : `${remaining} en stock`}
-        </div>
+        {SHOW_STOCK && (
+          <div className={`product-stock${outOfStock ? ' is-out' : lowStock ? ' is-low' : ''}`}>
+            <span className="dot" />
+            {outOfStock ? 'Épuisé' : `${remaining} en stock`}
+          </div>
+        )}
       </div>
     </div>
   );

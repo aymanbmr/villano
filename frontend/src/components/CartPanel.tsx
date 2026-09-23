@@ -9,6 +9,7 @@ import {
 } from '../api';
 import type { CartLine } from '../useCart';
 import { Icon } from './Icon';
+import { SHOW_STOCK } from '../config';
 import { TablePicker } from './TablePicker';
 import { WaiterPicker } from './WaiterPicker';
 
@@ -181,8 +182,8 @@ export function CartPanel({
               <button
                 type="button"
                 onClick={() => onSetQuantity(product.id, quantity + 1)}
-                disabled={quantity >= product.stock}
-                title={quantity >= product.stock ? 'Stock maximum atteint' : undefined}
+                disabled={SHOW_STOCK && quantity >= product.stock}
+                title={SHOW_STOCK && quantity >= product.stock ? 'Stock maximum atteint' : undefined}
                 aria-label="Plus"
               >
                 <Icon name="plus" size={14} />

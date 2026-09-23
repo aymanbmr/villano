@@ -5,6 +5,7 @@ import { HBars } from '../../components/charts/HBars';
 import { StatTile } from '../../components/charts/StatTile';
 import { Icon } from '../../components/Icon';
 import { navigate } from '../../router';
+import { SHOW_STOCK } from '../../config';
 import { RangePicker, defaultRange, type Range } from './RangePicker';
 import { fullDay, shortDay } from './dateRange';
 
@@ -196,7 +197,8 @@ export function Dashboard() {
                 <li key={u.productId}>
                   <span>{u.name}</span>
                   <span className="muted">
-                    {dh(u.price)} · stock {u.stock}
+                    {dh(u.price)}
+                    {SHOW_STOCK ? ` · stock ${u.stock}` : ''}
                   </span>
                 </li>
               ))}

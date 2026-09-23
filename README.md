@@ -157,6 +157,20 @@ La caisse ne prend des commandes que si la journée est ouverte.
 - La règle est appliquée aussi côté serveur (403), donc impossible à contourner
   depuis un téléphone.
 
+## Gestion du stock (désactivée)
+
+La gestion du stock est masquée : aucun compteur n'apparaît sur la caisse ni
+dans l'admin, aucun produit n'est bloqué parce qu'il serait épuisé, et les
+quantités ne bougent plus lors des ventes.
+
+Pour la réactiver, deux réglages doivent correspondre :
+
+- `frontend/src/config.ts` : `SHOW_STOCK = true`
+- `backend/.env` : `STOCK_ENABLED=true`
+
+puis `npm run build` et relancer Villano. Les quantités enregistrées avant la
+désactivation sont conservées : prévoir un inventaire avant de s'y fier.
+
 ## Identité visuelle
 
 Le logo Villano est utilisé partout : barre de l'application, écran de

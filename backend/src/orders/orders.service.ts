@@ -3,6 +3,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Between, DataSource, EntityManager, FindOptionsWhere, IsNull, Repository } from 'typeorm';
 import { Employee } from '../employees/employee.entity.js';
@@ -36,7 +37,14 @@ export class OrdersService {
     @InjectRepository(Order)
     private readonly orders: Repository<Order>,
     private readonly dataSource: DataSource,
-  ) {}
+    config: ConfigService,
+  ) {
+    // Stock tracking can be turned off while the café does not keep counts:
+    // quantities are then neither checked nor decremented.
+    this.stockEnabled = (config.get<string>('STOCK_ENABLED') ?? 'true') !== 'false';
+  }
+
+  private readonly stockEnabled: boolean;
 
   // from/to are local calendar days (YYYY-MM-DD), inclusive
   findAll(status?: OrderStatus, limit = 50, from?: string, to?: string) {
@@ -195,7 +203,7 @@ export class OrdersService {
       }
 
       const products = manager.getRepository(Product);
-      if (line.productId != null) {
+      if (this.stockEnabled && line.productId != null) {
         const product = await products.findOneBy({ id: line.productId });
         if (product) {
           if (delta > 0 && product.stock < delta) {
@@ -252,6 +260,7 @@ export class OrdersService {
   }
 
   private async restoreStock(manager: EntityManager, order: Order) {
+    if (!this.stockEnabled) return;
     const products = manager.getRepository(Product);
     for (const item of order.items) {
       if (item.productId == null) continue;
@@ -287,7 +296,7 @@ export class OrdersService {
     for (const [productId, quantity] of wanted) {
       const product = await products.findOneBy({ id: productId });
       if (!product) throw new NotFoundException(`Produit ${productId} introuvable`);
-      if (!force) {
+      if (!force && this.stockEnabled) {
         if (!product.isAvailable) {
           throw new BadRequestException(`« ${product.name} » n'est pas disponible`);
         }
@@ -297,8 +306,10 @@ export class OrdersService {
           );
         }
       }
-      product.stock -= quantity;
-      await products.save(product);
+      if (this.stockEnabled) {
+        product.stock -= quantity;
+        await products.save(product);
+      }
 
       const line = items.find((i) => i.productId === product.id);
       if (line) {
