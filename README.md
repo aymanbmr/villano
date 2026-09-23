@@ -110,10 +110,10 @@ curl -F "image=@photo.jpg" http://localhost:3000/api/products/1/image
 
 1. Installer **Node.js LTS** : https://nodejs.org (Suivant, Suivant…).
 2. Récupérer le projet sur le PC : `git clone https://github.com/aymanbmr/villano.git` ou GitHub → **Code → Download ZIP** puis décompresser.
-3. Double-cliquer sur **`desktopinstall.cmd`** : installe, compile et crée le raccourci **Villano** sur le Bureau.
-4. Double-cliquer sur **Villano**. Premier accès avec le mot de passe admin (`backend.env`), puis créer les employés et leurs PIN.
+3. Double-cliquer sur **`desktop\install.cmd`** : installe, compile et crée le raccourci **Villano** sur le Bureau.
+4. Double-cliquer sur **Villano**. Premier accès avec le mot de passe admin (`backend\.env`), puis créer les employés et leurs PIN.
 
-Mise à jour : `git pull` (ou nouveau ZIP) puis relancer `desktopinstall.cmd`.
+Mise à jour : `git pull` (ou nouveau ZIP) puis relancer `desktop\install.cmd`.
 
 ## Application de bureau (Windows)
 
@@ -123,7 +123,7 @@ barre d'adresse ni onglets, et démarre le serveur si besoin (une seule fenêtre
 
 ```powershell
 npm run build                                              # après chaque mise à jour du code
-powershell -ExecutionPolicy Bypass -File desktopcreate-shortcut.ps1   # crée le raccourci (une fois)
+powershell -ExecutionPolicy Bypass -File desktop\create-shortcut.ps1   # crée le raccourci (une fois)
 ```
 
 En mode bureau, le serveur sert aussi l'app compilée : tout tourne sur
