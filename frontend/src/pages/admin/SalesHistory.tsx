@@ -164,7 +164,7 @@ export function SalesHistory() {
                 <td className="actions">
                   {o.status === 'paid' && (
                     <>
-                      <button type="button" className="btn btn-ghost btn-sm" onClick={() => print({ kind: 'receipt', order: o })} title="Réimprimer le ticket">
+                      <button type="button" className="btn btn-ghost btn-sm" onClick={() => void print({ kind: 'receipt', order: o })} title="Réimprimer le ticket">
                         <Icon name="printer" size={14} />
                       </button>
                       <button type="button" className="btn btn-ghost btn-sm btn-danger" onClick={() => cancel(o)} title="Annuler la commande">

@@ -9,6 +9,7 @@ import { SeedModule } from './seed/seed.module.js';
 import { EmployeesModule } from './employees/employees.module.js';
 import { AuthModule } from './auth/auth.module.js';
 import { StatsModule } from './stats/stats.module.js';
+import { PrintingModule } from './printing/printing.module.js';
 import { HealthController } from './health/health.controller.js';
 import { WorkDaysModule } from './work-days/work-days.module.js';
 import { existsSync } from 'node:fs';
@@ -47,6 +48,7 @@ import { DATABASE_FILE, FRONTEND_DIST, UPLOADS_DIR } from './config.js';
     EmployeesModule,
     AuthModule,
     StatsModule,
+    PrintingModule,
     WorkDaysModule,
     SeedModule,
   ],

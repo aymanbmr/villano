@@ -11,6 +11,7 @@ import {
   Query,
 } from '@nestjs/common';
 import { OrdersService } from './orders.service.js';
+import { PrintingService } from '../printing/printing.service.js';
 import {
   AddItemsDto,
   CreateOrderDto,
@@ -24,7 +25,10 @@ const STATUSES: OrderStatus[] = ['pending', 'paid', 'cancelled'];
 
 @Controller('orders')
 export class OrdersController {
-  constructor(private readonly orders: OrdersService) {}
+  constructor(
+    private readonly orders: OrdersService,
+    private readonly printing: PrintingService,
+  ) {}
 
   // GET /orders?status=pending
   @Get()
@@ -46,13 +50,33 @@ export class OrdersController {
   }
 
   @Post()
-  create(@Body() dto: CreateOrderDto) {
-    return this.orders.create(dto);
+  async create(@Body() dto: CreateOrderDto) {
+    const order = await this.orders.create(dto);
+    // The kitchen ticket prints by itself at the pass, so a waiter taking an
+    // order from a phone never has to walk to a printer. A printer that is
+    // off or unplugged must not fail the order, hence the background call.
+    const config = await this.printing.getConfig();
+    if (config.autoKitchen) this.printing.printInBackground('kitchen', order);
+    return order;
   }
 
   @Post(':id/items')
-  addItems(@Param('id', ParseIntPipe) id: number, @Body() dto: AddItemsDto) {
-    return this.orders.addItems(id, dto);
+  async addItems(@Param('id', ParseIntPipe) id: number, @Body() dto: AddItemsDto) {
+    const order = await this.orders.addItems(id, dto);
+    // Only the lines just added are of any use to the kitchen: the saved
+    // order carries the running totals, the ticket carries the new quantities.
+    const config = await this.printing.getConfig();
+    if (config.autoKitchen) {
+      const quantities = new Map<number, number>();
+      for (const line of dto.items) {
+        quantities.set(line.productId, (quantities.get(line.productId) ?? 0) + line.quantity);
+      }
+      const added = order.items
+        .filter((item) => item.productId !== null && quantities.has(item.productId))
+        .map((item) => ({ ...item, quantity: quantities.get(item.productId!)! }));
+      this.printing.printInBackground('kitchen', { ...order, items: added });
+    }
+    return order;
   }
 
   @Patch(':id')

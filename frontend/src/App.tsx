@@ -19,6 +19,15 @@ export default function App() {
   if (!session) return <LoginPage />;
   if (!allowed) return null;
   if (route === 'caisse') return <CaissePage />;
-  const section = route === 'admin/employes' ? 'employes' : route === 'admin/menu' ? 'menu' : route === 'admin/ventes' ? 'ventes' : 'dashboard';
+  const section =
+    route === 'admin/employes'
+      ? 'employes'
+      : route === 'admin/menu'
+        ? 'menu'
+        : route === 'admin/ventes'
+          ? 'ventes'
+          : route === 'admin/imprimantes'
+            ? 'imprimantes'
+            : 'dashboard';
   return <AdminPage section={section} />;
 }

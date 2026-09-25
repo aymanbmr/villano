@@ -541,3 +541,39 @@ export const statsApi = {
   orders: (status: OrderStatus, from: string, to: string, limit = 200) =>
     request<Order[]>(`/orders?status=${status}&from=${from}&to=${to}&limit=${limit}`),
 };
+
+// ---------- Printing (network thermal printers, driven by the server) ----------
+
+export type PrinterId = 'counter' | 'kitchen';
+export type TicketKind = 'kitchen' | 'bill' | 'receipt';
+
+export interface PrinterConfig {
+  enabled: boolean;
+  host: string;
+  port: number;
+  width: number;
+  openDrawer: boolean;
+}
+
+export interface PrintingConfig {
+  counter: PrinterConfig;
+  kitchen: PrinterConfig;
+  autoKitchen: boolean;
+  header: { name: string; subtitle: string; address: string; phone: string; footer: string };
+}
+
+export interface PrintResult {
+  printed: boolean;
+  printer: PrinterId;
+  reason?: string;
+}
+
+export const printingApi = {
+  config: () => request<PrintingConfig>('/printing/config'),
+  save: (patch: Partial<PrintingConfig>) =>
+    request<PrintingConfig>('/printing/config', json('PUT', patch)),
+  test: (printer: PrinterId) =>
+    request<PrintResult>(`/printing/test/${printer}`, { method: 'POST' }),
+  print: (kind: TicketKind, orderId: number) =>
+    request<PrintResult>(`/printing/${kind}/${orderId}`, { method: 'POST' }),
+};

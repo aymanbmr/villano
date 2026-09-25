@@ -3590,3 +3590,42 @@ table.breakdown tfoot td {
 .workday-pill[aria-disabled='true'] {
   cursor: default;
 }
+
+/* ---------- Admin : imprimantes ---------- */
+
+.printers-admin {
+  display: grid;
+  gap: 16px;
+  align-content: start;
+}
+
+.printers-admin .card h3 {
+  margin: 0 0 12px;
+}
+
+.printer-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 16px;
+  align-items: start;
+}
+
+.printer-card {
+  display: grid;
+  gap: 12px;
+  align-content: start;
+}
+
+.printer-card .card-head {
+  margin-bottom: 0;
+}
+
+.printer-card .btn {
+  justify-self: start;
+}
+
+.printer-hint {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+}

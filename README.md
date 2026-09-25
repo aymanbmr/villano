@@ -238,18 +238,41 @@ d'abandonner.
 
 ## Impression des tickets
 
-Trois tickets, formatés pour une imprimante thermique 80 mm et envoyés via la
-boîte d'impression du navigateur (choisir l'imprimante ticket, désactiver les
-en-têtes/pieds de page) :
+Trois tickets, formatés pour une imprimante thermique 80 mm :
 
-- **Bon de cuisine** — bouton « 🖨 Cuisine » sur une commande en cours, ou
-  automatiquement à l'envoi si la case « Imprimer le bon de cuisine à l'envoi »
-  est cochée (mémorisée sur le poste). Lors d'un ajout d'articles, seul l'ajout
-  est imprimé.
-- **Addition** — bouton « 🖨 Addition » (pré-note, marquée « Non payé »).
-- **Ticket de caisse** — bouton « 🖨 Imprimer le ticket » après encaissement.
+- **Bon de cuisine** — bouton « Cuisine » sur une commande en cours, ou
+  automatiquement à l'envoi. Lors d'un ajout d'articles, seul l'ajout est
+  imprimé.
+- **Addition** — bouton « Addition » (pré-note, marquée « Non payé »).
+- **Ticket de caisse** — bouton « Imprimer le ticket » après encaissement.
 
-Nom, adresse, téléphone et message de pied de page : `frontend/src/config.ts`.
+### Deux imprimantes réseau (comptoir + cuisine)
+
+Dans **Admin → Imprimantes**, renseigner l'adresse IP de chaque imprimante
+(port 9100, celui que toutes les imprimantes ticket réseau écoutent) :
+
+- **Comptoir** — additions et tickets de caisse, avec ouverture du
+  tiroir-caisse à l'encaissement en espèces si la case est cochée.
+- **Cuisine** — bons de préparation, sans les prix, table et articles en
+  double hauteur pour être lus depuis le passe.
+
+Le bouton « Imprimer une page de test » de chaque carte enregistre les
+réglages puis envoie un ticket de contrôle : s'il ne sort pas, le message
+indique si l'imprimante est injoignable ou si elle refuse la connexion.
+
+C'est **le serveur** qui parle aux imprimantes, pas le navigateur. Une commande
+envoyée depuis le téléphone d'un serveur imprime donc son bon en cuisine sans
+que le téléphone soit relié à quoi que ce soit ; l'option « Imprimer le bon en
+cuisine dès qu'une commande est envoyée » gouverne cet envoi automatique. Une
+imprimante éteinte n'empêche jamais d'enregistrer la commande.
+
+Tant qu'aucune imprimante n'est configurée, l'application retombe sur la boîte
+d'impression du navigateur (choisir l'imprimante ticket, désactiver les
+en-têtes/pieds de page) — c'est aussi le repli quand le serveur est
+injoignable.
+
+En-tête des tickets réseau (nom, adresse, téléphone, message de fin) :
+Admin → Imprimantes. Pour les tickets du navigateur : `frontend/src/config.ts`.
 
 ## Application native iOS / Android (dossier `mobile/`, EAS Build)
 

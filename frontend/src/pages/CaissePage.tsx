@@ -63,7 +63,7 @@ export function CaissePage() {
   const [toast, setToast] = useState<string | null>(null);
   const [paidOrder, setPaidOrder] = useState<Order | null>(null);
   const cart = useCart();
-  const { job: printJob, print } = usePrint();
+  const { job: printJob, print, serverPrintsKitchen } = usePrint();
   const [autoPrintKitchen, setAutoPrintKitchen] = useState(() => {
     try {
       return localStorage.getItem(AUTO_PRINT_KEY) === '1';
@@ -144,17 +144,18 @@ export function CaissePage() {
       if (appendTo) {
         order = await api.addItems(appendTo.id, payload.items);
         setToast(`Articles ajoutés à la commande ${order.ticketNumber}`);
-        // The kitchen only needs the lines that were just added
-        if (autoPrintKitchen)
-          print({
-            kind: 'kitchen',
-            order: { ...order, items: addedLines(payload.items) },
-          });
+        // The kitchen only needs the lines that were just added. The server
+        // already sent them to the network printer, so this is the fallback.
+        if (autoPrintKitchen && !serverPrintsKitchen)
+          void print(
+            { kind: 'kitchen', order: { ...order, items: addedLines(payload.items) } },
+            { server: false },
+          );
       } else {
         order = await api.createOrder(payload);
         const where = orderLabel(order);
         setToast(`Commande ${order.ticketNumber} envoyée · ${where}`);
-        if (autoPrintKitchen) print({ kind: 'kitchen', order });
+        if (autoPrintKitchen && !serverPrintsKitchen) void print({ kind: 'kitchen', order });
       }
       cart.clear();
       setAppendTo(null);
@@ -335,7 +336,7 @@ export function CaissePage() {
               onUpdate={updateOrder}
               onUpdateItem={updateItem}
               onDelete={deleteOrder}
-              onPrint={(order: Order, kind: TicketKind) => print({ kind, order })}
+              onPrint={(order: Order, kind: TicketKind) => void print({ kind, order })}
             />
           )}
         </aside>
@@ -383,7 +384,7 @@ export function CaissePage() {
           <OrderSuccessModal
             order={paidOrder}
             onClose={() => setPaidOrder(null)}
-            onPrint={() => print({ kind: 'receipt', order: paidOrder })}
+            onPrint={() => void print({ kind: 'receipt', order: paidOrder })}
           />
         )}
       </div>
