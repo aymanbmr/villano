@@ -248,8 +248,11 @@ Trois tickets, formatés pour une imprimante thermique 80 mm :
 
 ### Deux imprimantes réseau (comptoir + cuisine)
 
-Dans **Admin → Imprimantes**, renseigner l'adresse IP de chaque imprimante
-(port 9100, celui que toutes les imprimantes ticket réseau écoutent) :
+Dans **Admin → Imprimantes**, bouton **« Lancer la recherche »** : le serveur
+parcourt le réseau sur lequel il se trouve et liste tout ce qui répond aux
+imprimantes, avec son adresse et son numéro réseau. Il ne reste qu'à affecter
+chaque ligne au comptoir ou à la cuisine. L'adresse peut aussi être saisie à la
+main (port 9100, celui que toutes les imprimantes ticket réseau écoutent) :
 
 - **Comptoir** — additions et tickets de caisse, avec ouverture du
   tiroir-caisse à l'encaissement en espèces si la case est cochée.
@@ -259,6 +262,36 @@ Dans **Admin → Imprimantes**, renseigner l'adresse IP de chaque imprimante
 Le bouton « Imprimer une page de test » de chaque carte enregistre les
 réglages puis envoie un ticket de contrôle : s'il ne sort pas, le message
 indique si l'imprimante est injoignable ou si elle refuse la connexion.
+
+#### Changer de box, de Wi-Fi, de réseau
+
+Une imprimante est jointe par son adresse IP, et une adresse IP appartient à un
+réseau : changez de box, déplacez la caisse, laissez le routeur redistribuer ses
+baux, et l'adresse enregistrée ne pointe plus sur rien.
+
+Villano ne s'y fie donc pas seule. Chaque imprimante est aussi mémorisée par son
+**numéro réseau** (adresse MAC), gravé en usine et que rien ne change. Quand
+l'adresse enregistrée ne répond plus, le serveur balaie le réseau, reconnaît
+l'imprimante à ce numéro, enregistre sa nouvelle adresse et imprime — sans que
+personne n'ouvre les réglages. Le numéro est capté à la recherche, ou à la
+première page de test réussie.
+
+Cela vaut pour le réseau où se trouve le serveur. Une imprimante réglée en IP
+fixe sur un autre sous-réseau que celui du café (par exemple 192.168.123.100
+alors que le café est en 192.168.1.x, réglage d'usine fréquent) reste invisible
+de tout le monde : il faut la remettre une fois en DHCP ou dans la bonne plage,
+avec l'utilitaire du fabricant en USB, ou depuis un PC filaire auquel on ajoute
+une adresse temporaire dans le sous-réseau de l'imprimante :
+
+```
+netsh interface ipv4 add address name="NOM" addr=192.168.123.50 mask=255.255.255.0
+netsh interface ipv4 delete address name="NOM" addr=192.168.123.50
+```
+
+#### Une seule imprimante
+
+Si la cuisine n'a pas d'imprimante, laissez sa carte désactivée : les bons de
+cuisine sortent alors sur celle du comptoir plutôt que de ne pas sortir.
 
 C'est **le serveur** qui parle aux imprimantes, pas le navigateur. Une commande
 envoyée depuis le téléphone d'un serveur imprime donc son bon en cuisine sans

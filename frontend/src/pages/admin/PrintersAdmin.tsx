@@ -1,5 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ApiError, printingApi, type PrinterConfig, type PrinterId, type PrintingConfig } from '../../api';
+import {
+  ApiError,
+  printingApi,
+  type FoundPrinter,
+  type PrinterConfig,
+  type PrinterId,
+  type PrintingConfig,
+} from '../../api';
 import { Icon } from '../../components/Icon';
 import { refreshPrintingConfig } from '../../usePrint';
 
@@ -74,9 +81,20 @@ function PrinterCard({ id, title, hint, value, busy, onChange, onTest }: CardPro
         )}
       </div>
 
-      <button type="button" className="btn btn-ghost" disabled={busy || !value.host} onClick={onTest}>
-        <Icon name="printer" size={15} /> Imprimer une page de test
-      </button>
+      <div className="printer-actions">
+        <button type="button" className="btn btn-ghost" disabled={busy || !value.host} onClick={onTest}>
+          <Icon name="printer" size={15} /> Imprimer une page de test
+        </button>
+        {value.mac ? (
+          <span className="printer-mac" title="Numéro réseau de l'imprimante">
+            <Icon name="check" size={14} /> reconnue · {value.mac}
+          </span>
+        ) : (
+          <span className="printer-mac muted">
+            Lancez une page de test pour que l'imprimante soit reconnue même si son adresse change.
+          </span>
+        )}
+      </div>
     </section>
   );
 }
@@ -86,6 +104,8 @@ export function PrintersAdmin() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [found, setFound] = useState<FoundPrinter[] | null>(null);
+  const [scanning, setScanning] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -119,6 +139,41 @@ export function PrintersAdmin() {
       setBusy(false);
     }
   };
+
+  const scan = async () => {
+    setScanning(true);
+    setError(null);
+    setMessage(null);
+    try {
+      const printers = await printingApi.discover();
+      setFound(printers);
+      setMessage(
+        printers.length
+          ? `${printers.length} appareil(s) trouvé(s) sur le réseau.`
+          : 'Aucune imprimante trouvée sur le réseau de ce serveur.',
+      );
+    } catch (e) {
+      setError(fail(e));
+    } finally {
+      setScanning(false);
+    }
+  };
+
+  // Assigning a found printer carries its network serial number along, so the
+  // application can follow it if the box hands out a different address later.
+  const assign = (id: PrinterId, printer: FoundPrinter) => {
+    patch({
+      [id]: { ...config[id], host: printer.host, port: printer.port, mac: printer.mac, enabled: true },
+    } as Partial<PrintingConfig>);
+    setMessage(
+      `${printer.host} affectée ${id === 'kitchen' ? 'à la cuisine' : 'au comptoir'}. Enregistrez, puis imprimez une page de test.`,
+    );
+  };
+
+  const assignedTo = (host: string) =>
+    [config.counter.host === host && 'comptoir', config.kitchen.host === host && 'cuisine']
+      .filter(Boolean)
+      .join(' et ');
 
   // The address has to be saved before the server can print to it
   const test = async (id: PrinterId) => {
@@ -158,6 +213,58 @@ export function PrintersAdmin() {
 
       {error && <div className="error">{error}</div>}
       {message && <div className="hint">{message}</div>}
+
+      <section className="card">
+        <div className="card-head">
+          <h3>Rechercher les imprimantes</h3>
+          <button type="button" className="btn btn-ghost" disabled={scanning} onClick={scan}>
+            <Icon name="search" size={15} /> {scanning ? 'Recherche…' : 'Lancer la recherche'}
+          </button>
+        </div>
+        <p className="muted printer-hint">
+          Le serveur parcourt le réseau sur lequel il se trouve et liste tout ce qui répond aux
+          imprimantes. Inutile de connaître les adresses : branchez, cherchez, affectez.
+        </p>
+
+        {found && found.length > 0 && (
+          <ul className="found-list">
+            {found.map((printer) => {
+              const role = assignedTo(printer.host);
+              return (
+                <li key={`${printer.host}:${printer.port}`} className="found-item">
+                  <div className="found-id">
+                    <strong>{printer.host}</strong>
+                    <span className="muted">{printer.mac || 'numéro réseau inconnu'}</span>
+                    {role && <span className="found-role">affectée : {role}</span>}
+                  </div>
+                  <div className="found-actions">
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm"
+                      onClick={() => assign('counter', printer)}
+                    >
+                      Comptoir
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm"
+                      onClick={() => assign('kitchen', printer)}
+                    >
+                      Cuisine
+                    </button>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+        {found && found.length === 0 && (
+          <p className="empty">
+            Rien ne répond. Vérifiez que les imprimantes sont allumées et que leur câble réseau est
+            branché, puis relancez la recherche.
+          </p>
+        )}
+      </section>
 
       <div className="printer-grid">
         <PrinterCard

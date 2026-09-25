@@ -5,6 +5,7 @@ import { Socket } from 'node:net';
 import { Setting } from '../settings/setting.entity.js';
 import { Order } from '../orders/order.entity.js';
 import { EscPos } from './escpos.js';
+import { arpTable, discoverPrinters, findByMac, reachable, type FoundPrinter } from './discovery.js';
 
 export type TicketKind = 'kitchen' | 'bill' | 'receipt';
 export type PrinterId = 'counter' | 'kitchen';
@@ -17,6 +18,12 @@ export interface PrinterConfig {
   width: number;
   /** Opens the cash drawer wired to this printer when a receipt is printed. */
   openDrawer: boolean;
+  /**
+   * The printer's network serial number, burnt in at the factory. The host above
+   * is only where it answered last time; this is how it is found again after the
+   * router, the box or the Wi-Fi changed underneath it.
+   */
+  mac: string;
 }
 
 export interface PrintingConfig {
@@ -30,8 +37,8 @@ export interface PrintingConfig {
 const SETTINGS_KEY = 'printing';
 
 const DEFAULTS: PrintingConfig = {
-  counter: { enabled: false, host: '', port: 9100, width: 48, openDrawer: false },
-  kitchen: { enabled: false, host: '', port: 9100, width: 48, openDrawer: false },
+  counter: { enabled: false, host: '', port: 9100, width: 48, openDrawer: false, mac: '' },
+  kitchen: { enabled: false, host: '', port: 9100, width: 48, openDrawer: false, mac: '' },
   autoKitchen: true,
   header: {
     name: 'Villano',
@@ -91,21 +98,54 @@ export class PrintingService {
     return next;
   }
 
-  /** Which printer a ticket goes to: kitchen tickets to the kitchen, the rest to the counter. */
-  private printerFor(kind: TicketKind): PrinterId {
-    return kind === 'kitchen' ? 'kitchen' : 'counter';
+  private static usable(printer: PrinterConfig) {
+    return printer.enabled && !!printer.host;
+  }
+
+  /**
+   * Which printer a ticket goes to: kitchen tickets to the kitchen, the rest to
+   * the counter. Small places run a single printer, so a kitchen ticket falls
+   * back to the counter rather than not printing at all.
+   */
+  printerFor(kind: TicketKind, config: PrintingConfig): PrinterId {
+    if (kind !== 'kitchen') return 'counter';
+    return PrintingService.usable(config.kitchen) ? 'kitchen' : 'counter';
   }
 
   async print(kind: TicketKind, order: Order): Promise<{ printed: boolean; printer: PrinterId; reason?: string }> {
     const config = await this.getConfig();
-    const id = this.printerFor(kind);
-    const printer = config[id];
-    if (!printer.enabled || !printer.host) {
+    const id = this.printerFor(kind, config);
+    if (!PrintingService.usable(config[id])) {
       return { printed: false, printer: id, reason: 'Imprimante non configurée' };
     }
+    const printer = await this.locate(id, config);
     const payload = this.render(kind, order, config, printer);
     await this.send(printer, payload);
     return { printed: true, printer: id };
+  }
+
+  /**
+   * The printer as it can be reached right now. If the saved address answers we
+   * use it; otherwise the network is swept for the printer's MAC and the new
+   * address is saved, so a caisse moved to another box keeps printing without
+   * anyone opening the settings.
+   */
+  private async locate(id: PrinterId, config: PrintingConfig): Promise<PrinterConfig> {
+    const printer = config[id];
+    if (await reachable(printer.host, printer.port)) return printer;
+    if (!printer.mac) return printer; // nothing to search by: fail on the saved address
+
+    const host = await findByMac(printer.mac, printer.port);
+    if (!host || host === printer.host) return printer;
+
+    this.logger.log(`Imprimante ${id} retrouvée en ${host} (était ${printer.host || 'non renseignée'})`);
+    await this.setConfig({ [id]: { ...printer, host } } as Partial<PrintingConfig>);
+    return { ...printer, host };
+  }
+
+  /** Every device answering on the printing port, on the networks of this PC. */
+  async discover(): Promise<FoundPrinter[]> {
+    return discoverPrinters();
   }
 
   /** Fire-and-forget: a printer that is off must never block an order. */
@@ -117,8 +157,8 @@ export class PrintingService {
 
   async testPage(id: PrinterId) {
     const config = await this.getConfig();
-    const printer = config[id];
-    if (!printer.host) throw new BadRequestException("Renseignez l'adresse de l'imprimante");
+    if (!config[id].host) throw new BadRequestException("Renseignez l'adresse de l'imprimante");
+    const printer = await this.locate(id, config);
     const doc = new EscPos(printer.width);
     doc
       .align('center')
@@ -139,7 +179,17 @@ export class PrintingService {
       .line(`${printer.host}:${printer.port}`)
       .cut();
     await this.send(printer, doc.build());
-    return { printed: true, printer: id };
+    // The test is the moment the printer is confirmed to be the right one, so
+    // that is when its MAC is recorded: from then on it can be found again.
+    const mac = await this.macOf(printer.host);
+    if (mac && mac !== printer.mac) {
+      await this.setConfig({ [id]: { ...printer, mac } } as Partial<PrintingConfig>);
+    }
+    return { printed: true, printer: id, host: printer.host, mac: mac || printer.mac };
+  }
+
+  private async macOf(host: string) {
+    return (await arpTable()).get(host) ?? '';
   }
 
   // -------------------------------------------------------------------------

@@ -22,6 +22,14 @@ export class PrintingController {
     return this.printing.setConfig(patch);
   }
 
+  // Sweeps the networks of this PC for anything answering on the printing port,
+  // so the addresses never have to be typed in by hand.
+  @AdminOnly()
+  @Get('discover')
+  discover() {
+    return this.printing.discover();
+  }
+
   @AdminOnly()
   @Post('test/:printer')
   test(@Param('printer') printer: PrinterId) {

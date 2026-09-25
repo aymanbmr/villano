@@ -553,6 +553,14 @@ export interface PrinterConfig {
   port: number;
   width: number;
   openDrawer: boolean;
+  /** Network serial number: how the printer is found again if its IP changes. */
+  mac: string;
+}
+
+export interface FoundPrinter {
+  host: string;
+  port: number;
+  mac: string;
 }
 
 export interface PrintingConfig {
@@ -566,6 +574,8 @@ export interface PrintResult {
   printed: boolean;
   printer: PrinterId;
   reason?: string;
+  host?: string;
+  mac?: string;
 }
 
 export const printingApi = {
@@ -574,6 +584,7 @@ export const printingApi = {
     request<PrintingConfig>('/printing/config', json('PUT', patch)),
   test: (printer: PrinterId) =>
     request<PrintResult>(`/printing/test/${printer}`, { method: 'POST' }),
+  discover: () => request<FoundPrinter[]>('/printing/discover'),
   print: (kind: TicketKind, orderId: number) =>
     request<PrintResult>(`/printing/${kind}/${orderId}`, { method: 'POST' }),
 };
