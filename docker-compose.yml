@@ -1,0 +1,71 @@
+# Villano et sa base, en une commande :
+#
+#   cp .env.docker.example .env
+#   docker compose up -d --build
+#
+# L'application répond alors sur http://localhost:3000
+#
+# Pour un serveur exposé à internet, ajouter le profil « proxy » : Caddy se
+# place devant et obtient le certificat HTTPS tout seul.
+#
+#   DOMAIN=villano.exemple.ma docker compose --profile proxy up -d --build
+
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-villano}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?mot de passe de la base manquant}
+      POSTGRES_DB: ${POSTGRES_DB:-villano}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      # L'application ne doit pas demarrer avant que la base accepte vraiment
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-villano} -d ${POSTGRES_DB:-villano}']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  app:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-villano}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-villano}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?mot de passe admin manquant}
+      JWT_SECRET: ${JWT_SECRET:?cle de session manquante}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-14h}
+      STOCK_ENABLED: ${STOCK_ENABLED:-false}
+    volumes:
+      - uploads:/app/backend/uploads
+    ports:
+      # Sans reverse proxy, l'application est jointe directement sur ce port
+      - '${APP_PORT:-3000}:3000'
+
+  caddy:
+    image: caddy:2-alpine
+    profiles: ['proxy']
+    restart: unless-stopped
+    depends_on:
+      - app
+    environment:
+      # Compose verifie les variables de tous les services, meme derriere un
+      # profil inactif : la valeur reste donc facultative. Avec le profil
+      # « proxy », renseignez DOMAIN, sinon Caddy n'obtiendra aucun certificat.
+      DOMAIN: ${DOMAIN:-localhost}
+    ports:
+      - '80:80'
+      - '443:443'
+    volumes:
+      - ./docker/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+
+volumes:
+  db-data:
+  uploads:
+  caddy-data:
+  caddy-config:

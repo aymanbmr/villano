@@ -339,7 +339,53 @@ Le comportement par défaut suit donc le moteur — actif en SQLite (poste de
 développement), inactif en PostgreSQL (serveur hébergé). `DB_SYNC=true` le
 force, le temps de créer les tables sur une base neuve.
 
-## Hébergement sur un VPS (dossier `deploy/`)
+## Déploiement avec Docker (recommandé)
+
+L'application et sa base démarrent en une commande, à l'identique sur votre
+machine et sur le serveur — ce qui marche ici marchera là-bas.
+
+```bash
+cp .env.docker.example .env     # puis y mettre les mots de passe
+docker compose up -d --build
+```
+
+L'application répond sur `http://localhost:3000`. Les deux secrets se tirent
+au hasard avec `openssl rand -hex 32`.
+
+Pour un serveur exposé à internet, le profil `proxy` ajoute Caddy devant, qui
+obtient et renouvelle le certificat HTTPS tout seul :
+
+```bash
+DOMAIN=villano.exemple.ma docker compose --profile proxy up -d --build
+```
+
+| Besoin | Commande |
+| --- | --- |
+| Journaux en direct | `docker compose logs -f app` |
+| Mettre à jour | `git pull && docker compose up -d --build` |
+| Arrêter | `docker compose down` |
+| Sauvegarder la base | `docker compose exec db pg_dump -U villano villano \| gzip > villano.sql.gz` |
+| Restaurer | `gunzip -c villano.sql.gz \| docker compose exec -T db psql -U villano villano` |
+
+Les données vivent dans des volumes Docker, pas dans les conteneurs : la base
+dans `db-data`, les photos des produits dans `uploads`. Reconstruire l'image
+ou supprimer les conteneurs ne les touche pas. `docker compose down -v`, en
+revanche, les efface — c'est la seule commande à manier avec précaution.
+
+L'image se construit en deux temps : une première contient les compilateurs et
+les dépendances de développement, et seul le résultat passe dans l'image
+finale. Au démarrage, le conteneur attend que PostgreSQL accepte vraiment les
+connexions, puis crée le schéma **uniquement si la base est vierge** — sur une
+base contenant les ventes, il ne touche à rien.
+
+### Reprendre les données de la caisse
+
+```bash
+docker compose cp backend/villano.sqlite app:/tmp/villano.sqlite
+docker compose exec app npm run migrate:postgres -- /tmp/villano.sqlite
+```
+
+## Hébergement sur un VPS sans Docker (dossier `deploy/`)
 
 Le serveur sert aussi l'application compilée, donc un seul processus sur un
 seul port suffit. Tout est prêt pour un VPS Ubuntu 22.04 ou 24.04 ; la plus

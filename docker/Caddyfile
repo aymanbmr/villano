@@ -1,0 +1,9 @@
+# Caddy obtient et renouvelle le certificat HTTPS tout seul. Le domaine vient
+# de la variable DOMAIN du fichier .env.
+{$DOMAIN} {
+	encode zstd gzip
+	reverse_proxy app:3000
+
+	@uploads path /uploads/*
+	header @uploads Cache-Control "public, max-age=604800"
+}

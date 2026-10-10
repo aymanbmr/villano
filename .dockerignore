@@ -1,0 +1,17 @@
+# Ce qui ne doit jamais entrer dans l'image : dependances a reinstaller pour
+# Linux, secrets, donnees locales, et tout ce qui alourdirait le contexte.
+**/node_modules
+**/dist
+.git
+.github
+mobile
+desktop
+deploy
+brand
+*.sqlite
+*.sqlite-journal
+**/.env
+**/.env.*
+!.env.docker.example
+backend/uploads
+npm-debug.log*
