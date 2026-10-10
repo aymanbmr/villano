@@ -307,6 +307,69 @@ injoignable.
 En-tête des tickets réseau (nom, adresse, téléphone, message de fin) :
 Admin → Imprimantes. Pour les tickets du navigateur : `frontend/src/config.ts`.
 
+## Hébergement sur un VPS (dossier `deploy/`)
+
+Le serveur sert aussi l'application compilée, donc un seul processus sur un
+seul port suffit. Tout est prêt pour un VPS Ubuntu 22.04 ou 24.04 ; la plus
+petite machine convient (1 vCPU, 1 Go de RAM), la base étant un simple fichier
+SQLite.
+
+```bash
+# sur le VPS, en root
+git clone https://github.com/aymanbmr/villano.git /opt/villano
+sudo bash /opt/villano/deploy/vps-install.sh villano.exemple.ma
+```
+
+Le script installe Node.js 22 et Caddy, crée l'utilisateur de service, compile
+l'application, écrit `backend/.env` avec un mot de passe admin et une clé de
+session tirés au hasard — **il les affiche une seule fois, à noter** —, déclare
+le service systemd, ouvre le pare-feu et programme une sauvegarde quotidienne.
+Caddy obtient le certificat HTTPS tout seul : il faut simplement que le domaine
+pointe déjà sur l'adresse IP du VPS.
+
+| Besoin | Commande |
+| --- | --- |
+| État du service | `systemctl status villano` |
+| Journaux en direct | `journalctl -u villano -f` |
+| Mettre à jour | `sudo bash /opt/villano/deploy/vps-update.sh` |
+| Sauvegarder maintenant | `villano-backup` |
+
+Les sauvegardes vont dans `/var/backups/villano`, gardées 30 jours : la base
+est copiée avec `sqlite3 .backup`, qui reste cohérent même si une commande est
+encaissée pendant l'opération, et les images dans une archive à part. Une
+sauvegarde est prise automatiquement avant chaque mise à jour.
+
+### Ce qu'un VPS fait perdre : l'impression directe
+
+Les imprimantes sont sur le réseau local du café, derrière la box. Un serveur
+hébergé dans un datacenter ne peut pas les joindre : l'impression réseau
+décrite plus haut cesse de fonctionner, avec elle la coupe automatique, le
+tiroir-caisse et le bon de cuisine envoyé tout seul depuis le téléphone d'un
+serveur.
+
+Il reste l'impression par le navigateur de la caisse, qui passe par le pilote
+Windows et la boîte d'impression. C'est ce que fait l'application dès qu'aucune
+imprimante réseau n'est configurée, sans rien à changer.
+
+Pour retrouver l'impression directe avec un serveur distant, il faudrait un
+petit agent tournant au café, qui interroge le serveur et relaie les tickets
+aux imprimantes du réseau local. Ce n'est pas écrit à ce jour.
+
+### Choisir entre VPS et serveur au café
+
+Le VPS vaut pour un accès depuis n'importe où, une adresse stable, des
+sauvegardes régulières et l'absence de PC à laisser allumé. Il coûte en
+revanche l'impression directe, et une coupure internet au café fait basculer la
+caisse en mode hors ligne — les commandes continuent d'être prises et se
+synchronisent au retour, mais le tableau de bord et l'administration restent
+inaccessibles le temps de la panne.
+
+Le serveur au café garde les imprimantes et survit aux coupures internet, au
+prix d'un PC qui doit rester allumé et d'une adresse qui change avec le réseau.
+
+Rien n'interdit de commencer par un VPS et de rapatrier plus tard, la base
+étant un seul fichier à copier.
+
 ## Application native iOS / Android (dossier `mobile/`, EAS Build)
 
 `mobile/` est une coque **Expo** : un écran natif (WebView) qui affiche

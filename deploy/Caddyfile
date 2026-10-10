@@ -1,0 +1,19 @@
+# Caddy obtains and renews the HTTPS certificate by itself; there is nothing
+# else to configure. Replace the domain below with yours, then:
+#   sudo cp deploy/Caddyfile /etc/caddy/Caddyfile && sudo systemctl reload caddy
+
+villano.exemple.ma {
+	encode zstd gzip
+
+	# Villano listens on the loopback only (HOST=127.0.0.1 in backend/.env)
+	reverse_proxy 127.0.0.1:3000
+
+	# Product images can be cached hard: their name changes when replaced
+	@uploads path /uploads/*
+	header @uploads Cache-Control "public, max-age=604800"
+
+	log {
+		output file /var/log/caddy/villano.log
+		format console
+	}
+}

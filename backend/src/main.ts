@@ -20,7 +20,10 @@ async function bootstrap() {
   );
 
   const port = process.env.PORT ?? 3000;
-  await app.listen(port);
-  console.log('Villano API running on http://localhost:' + port + '/api');
+  // Behind a reverse proxy (VPS), bind to the loopback so the port is not
+  // exposed directly; on the café PC the default reaches the whole network.
+  const host = process.env.HOST ?? '0.0.0.0';
+  await app.listen(port, host);
+  console.log(`Villano API running on http://${host}:${port}/api`);
 }
 await bootstrap();
