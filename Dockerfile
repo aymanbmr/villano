@@ -39,7 +39,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       postgresql-client ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
+# Le fuseau compte ici plus qu'ailleurs : les journées de caisse et les
+# statistiques raisonnent en heure locale du serveur. Un conteneur laissé en
+# UTC ferait basculer une commande encaissée à 00h30 sur la veille, et
+# décalerait d'une heure la courbe des ventes. À vérifier après démarrage, les
+# règles marocaines ayant changé plusieurs fois : « date » dans le conteneur
+# doit afficher la même heure que la pendule du café.
 ENV NODE_ENV=production \
+    TZ=Africa/Casablanca \
     HOST=0.0.0.0 \
     PORT=3000
 

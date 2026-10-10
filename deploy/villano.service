@@ -10,6 +10,9 @@ Group=villano
 # the working directory, so this must stay backend/.
 WorkingDirectory=/opt/villano/backend
 EnvironmentFile=/opt/villano/backend/.env
+# Un VPS est generalement en UTC ; les journees de caisse et les
+# statistiques suivent l'heure locale du serveur.
+Environment=TZ=Africa/Casablanca
 ExecStart=/usr/bin/node dist/main.js
 Restart=always
 RestartSec=3

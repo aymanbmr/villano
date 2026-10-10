@@ -39,6 +39,9 @@ services:
       JWT_SECRET: ${JWT_SECRET:?cle de session manquante}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-14h}
       STOCK_ENABLED: ${STOCK_ENABLED:-false}
+      # Heure locale du cafe : les journees de caisse et les statistiques en
+      # dependent. Verifiez-la apres demarrage (voir le README).
+      TZ: ${TZ:-Africa/Casablanca}
     volumes:
       - uploads:/app/backend/uploads
     ports:

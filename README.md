@@ -378,6 +378,33 @@ finale. Au démarrage, le conteneur attend que PostgreSQL accepte vraiment les
 connexions, puis crée le schéma **uniquement si la base est vierge** — sur une
 base contenant les ventes, il ne touche à rien.
 
+### Vérifier l'heure du serveur
+
+Les journées de caisse et les statistiques raisonnent en **heure locale du
+serveur** : le jour d'une vente, la courbe par heure et les bornes d'une
+période en dépendent. Un conteneur laissé en UTC compterait une commande
+encaissée à 00h30 sur la veille.
+
+Le fuseau est donc fixé à `Africa/Casablanca`, et se change par `TZ` dans le
+`.env`. Après le démarrage, comparez :
+
+```bash
+docker compose exec app date
+```
+
+L'heure affichée doit être celle de la pendule du café. Si elle est décalée
+d'une heure, c'est que la base de fuseaux et la règle marocaine en vigueur ne
+coïncident pas — les règles ont changé plusieurs fois, et le décalage du
+Ramadan s'y ajoute. Forcez alors un décalage fixe plutôt qu'une zone :
+
+```
+TZ=Etc/GMT-1     # pour UTC+1 — le signe est inversé, ce n'est pas une faute
+TZ=UTC           # pour UTC+0
+```
+
+Un décalage fixe ne suivra plus les changements de règle, mais il affiche la
+bonne heure, ce qui est tout ce qui compte pour la caisse.
+
 ### Reprendre les données de la caisse
 
 ```bash
