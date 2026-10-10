@@ -382,7 +382,18 @@ base contenant les ventes, il ne touche à rien.
 
 ```bash
 docker compose cp backend/villano.sqlite app:/tmp/villano.sqlite
-docker compose exec app npm run migrate:postgres -- /tmp/villano.sqlite
+docker compose exec app node dist/scripts/sqlite-to-postgres.js /tmp/villano.sqlite
+```
+
+Le script compilé est appelé directement : l'image de production ne contient
+pas le compilateur, et `npm run migrate:postgres` commence par recompiler.
+
+Même raison pour l'historique de démonstration, utile pour voir le tableau de
+bord se remplir — un mois de ventes réparties entre les serveurs actifs :
+
+```bash
+docker compose exec app node dist/scripts/seed-demo.js
+docker compose exec app node dist/scripts/seed-demo.js --clear   # les retirer
 ```
 
 ## Hébergement sur un VPS sans Docker (dossier `deploy/`)

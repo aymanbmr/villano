@@ -3,6 +3,7 @@ import { Like, Repository } from 'typeorm';
 import { AppModule } from '../app.module.js';
 import { Order, OrderItem } from '../orders/order.entity.js';
 import { Product } from '../products/product.entity.js';
+import { Employee } from '../employees/employee.entity.js';
 
 // Generates realistic sales history so the dashboard has something to show.
 //   npm run seed:demo            -> adds ~30 days of orders (tagged "Démo")
@@ -40,6 +41,7 @@ async function main() {
   const app = await NestFactory.createApplicationContext(AppModule, { logger: ['error', 'warn'] });
   const orders: Repository<Order> = app.get('OrderRepository');
   const products: Repository<Product> = app.get('ProductRepository');
+  const employees: Repository<Employee> = app.get('EmployeeRepository');
 
   if (clear) {
     const demo = await orders.find({ where: { note: Like(`${DEMO_NOTE}%`) } });
@@ -51,6 +53,13 @@ async function main() {
 
   const catalogue = await products.find();
   if (catalogue.length === 0) throw new Error('Aucun produit : lancez d’abord le serveur une fois (seed du menu).');
+
+  // Sans serveur rattaché, la colonne « responsable » des ventes et le détail
+  // de fin de journée resteraient vides — soit précisément ce qu'on veut voir.
+  const waiters = await employees.find({ where: { role: 'serveur', isActive: true } });
+  if (waiters.length === 0) {
+    console.log('Aucun serveur actif : les commandes seront créées sans responsable.');
+  }
 
   // Drinks sell far more often than dishes
   const menu = catalogue.map((p) => ({
@@ -115,6 +124,10 @@ async function main() {
         ticketNumber: `${dayKey}-${String(seq).padStart(3, '0')}`,
         orderType: takeaway ? 'takeaway' : 'dine_in',
         tableNumber: takeaway ? null : String(1 + Math.floor(rand() * 12)),
+        ...(waiters.length ? (({ id, firstName, lastName }) => ({
+          waiterId: id,
+          waiterName: `${firstName} ${lastName}`,
+        }))(pick(waiters)) : {}),
         status: cancelled ? 'cancelled' : 'paid',
         subtotal,
         discount,
