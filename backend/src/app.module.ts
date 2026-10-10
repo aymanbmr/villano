@@ -13,20 +13,15 @@ import { PrintingModule } from './printing/printing.module.js';
 import { HealthController } from './health/health.controller.js';
 import { WorkDaysModule } from './work-days/work-days.module.js';
 import { existsSync } from 'node:fs';
-import { DATABASE_FILE, FRONTEND_DIST, UPLOADS_DIR } from './config.js';
+import { FRONTEND_DIST, UPLOADS_DIR } from './config.js';
+import { typeOrmOptions } from './database.js';
 
 @Module({
   controllers: [HealthController],
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
-    TypeOrmModule.forRoot({
-      type: 'better-sqlite3',
-      database: DATABASE_FILE,
-      autoLoadEntities: true,
-      // Auto-creates/updates tables from the entities. Fine while the schema
-      // is evolving; switch to migrations before going live.
-      synchronize: true,
-    }),
+    // SQLite by default, PostgreSQL when DATABASE_URL is set: see database.ts
+    TypeOrmModule.forRoot(typeOrmOptions),
     // Product images: http://localhost:3000/uploads/<file>
     ServeStaticModule.forRoot({
       rootPath: UPLOADS_DIR,

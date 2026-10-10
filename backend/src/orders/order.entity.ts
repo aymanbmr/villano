@@ -7,6 +7,7 @@ import {
   OneToMany,
   PrimaryGeneratedColumn,
 } from 'typeorm';
+import { MONEY, TIMESTAMP } from '../database.js';
 
 export type PaymentMethod = 'cash' | 'card';
 export type OrderType = 'dine_in' | 'takeaway';
@@ -47,13 +48,13 @@ export class Order {
   @Column({ type: 'text', default: 'pending' })
   status: OrderStatus;
 
-  @Column({ type: 'real' })
+  @Column({ type: MONEY })
   subtotal: number;
 
-  @Column({ type: 'real', default: 0 })
+  @Column({ type: MONEY, default: 0 })
   discount: number;
 
-  @Column({ type: 'real' })
+  @Column({ type: MONEY })
   total: number;
 
   // Payment fields stay null until the order is paid
@@ -61,13 +62,13 @@ export class Order {
   paymentMethod: PaymentMethod | null;
 
   // Amount handed over by the customer (cash); equals total for card
-  @Column({ type: 'real', nullable: true })
+  @Column({ type: MONEY, nullable: true })
   amountPaid: number | null;
 
-  @Column({ type: 'real', default: 0 })
+  @Column({ type: MONEY, default: 0 })
   changeGiven: number;
 
-  @Column({ type: 'datetime', nullable: true })
+  @Column({ type: TIMESTAMP, nullable: true })
   paidAt: Date | null;
 
   @Column({ type: 'text', nullable: true })
@@ -100,12 +101,12 @@ export class OrderItem {
   @Column()
   productName: string;
 
-  @Column({ type: 'real' })
+  @Column({ type: MONEY })
   unitPrice: number;
 
   @Column({ type: 'integer' })
   quantity: number;
 
-  @Column({ type: 'real' })
+  @Column({ type: MONEY })
   lineTotal: number;
 }

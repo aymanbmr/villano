@@ -1,4 +1,5 @@
 import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import { TIMESTAMP } from '../database.js';
 
 // A manually-controlled business day: opened by a cashier at the start of
 // service, closed by hand at the end — even if work runs past midnight, the
@@ -11,7 +12,7 @@ export class WorkDay {
   @CreateDateColumn()
   openedAt: Date;
 
-  @Column({ type: 'datetime', nullable: true })
+  @Column({ type: TIMESTAMP, nullable: true })
   closedAt: Date | null;
 
   @Column()

@@ -25,7 +25,7 @@ fi
 
 echo "==> Paquets de base"
 apt-get update -qq
-apt-get install -y -qq curl ca-certificates gnupg git sqlite3 ufw build-essential python3
+apt-get install -y -qq curl ca-certificates gnupg git sqlite3 ufw build-essential python3 postgresql
 
 echo "==> Node.js 22 LTS"
 NODE_MAJOR="$(node -v 2>/dev/null | cut -d. -f1 | tr -d v)"
@@ -44,6 +44,26 @@ if ! command -v caddy >/dev/null 2>&1; then
   apt-get update -qq
   apt-get install -y -qq caddy
 fi
+
+echo "==> PostgreSQL"
+systemctl enable --now postgresql
+DB_NAME="villano"
+DB_USER="villano"
+# Le mot de passe n'est tire qu'a la premiere installation, sinon le .env
+# existant pointerait sur un mot de passe qui n'est plus le bon.
+if [[ -f "$APP_DIR/backend/.env" ]] && grep -q '^DATABASE_URL=' "$APP_DIR/backend/.env"; then
+  DB_URL_LINE="$(grep '^DATABASE_URL=' "$APP_DIR/backend/.env")"
+  DB_URL_AFTER_SCHEME="${DB_URL_LINE#*://}"
+  DB_URL_AFTER_USER="${DB_URL_AFTER_SCHEME#*:}"
+  DB_PASSWORD="${DB_URL_AFTER_USER%%@*}"
+  echo "    mot de passe repris du .env existant"
+else
+  DB_PASSWORD="$(openssl rand -hex 24)"
+fi
+sudo -u postgres psql -tAc "SELECT 1 FROM pg_roles WHERE rolname='$DB_USER'" | grep -q 1   || sudo -u postgres psql -qc "CREATE ROLE $DB_USER LOGIN PASSWORD '$DB_PASSWORD'"
+sudo -u postgres psql -qc "ALTER ROLE $DB_USER PASSWORD '$DB_PASSWORD'"
+sudo -u postgres psql -tAc "SELECT 1 FROM pg_database WHERE datname='$DB_NAME'" | grep -q 1   || sudo -u postgres createdb -O "$DB_USER" "$DB_NAME"
+echo "    base $DB_NAME prete"
 
 echo "==> Utilisateur de service"
 id -u "$SERVICE_USER" >/dev/null 2>&1 || useradd --system --home "$APP_DIR" --shell /usr/sbin/nologin "$SERVICE_USER"
@@ -69,6 +89,9 @@ PORT=3000
 # Derriere Caddy : le port n'est pas expose directement sur internet
 HOST=127.0.0.1
 
+# PostgreSQL local. Sa presence suffit a choisir ce moteur plutot que SQLite.
+DATABASE_URL=postgres://$DB_USER:$DB_PASSWORD@127.0.0.1:5432/$DB_NAME
+
 STOCK_ENABLED=false
 EOF
   chmod 600 "$ENV_FILE"
@@ -82,6 +105,12 @@ echo "==> Compilation (quelques minutes)"
 cd "$APP_DIR"
 npm run install:all --silent
 npm run build --silent
+
+echo "==> Creation du schema"
+# synchronize est volontairement desactive avec PostgreSQL : une colonne
+# renommee serait sinon supprimee et recreee vide a chaque demarrage. On ne
+# l'active que le temps de creer les tables.
+( cd "$APP_DIR/backend" && DB_SYNC=true timeout 90 node dist/main.js >/dev/null 2>&1 || true )
 
 chown -R "$SERVICE_USER:$SERVICE_USER" "$APP_DIR"
 
@@ -110,5 +139,8 @@ EOF
 
 echo
 echo "Termine. L'application repond sur https://$DOMAIN"
+echo
+echo "Pour reprendre une base SQLite existante (copiez-la d'abord sur le VPS) :"
+echo "  cd $APP_DIR/backend && npm run migrate:postgres -- /chemin/villano.sqlite"
 echo "Etat du service : systemctl status villano"
 echo "Journaux        : journalctl -u villano -f"

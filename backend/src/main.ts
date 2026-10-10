@@ -1,6 +1,7 @@
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module.js';
+import { describeDatabase } from './database.js';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -25,5 +26,6 @@ async function bootstrap() {
   const host = process.env.HOST ?? '0.0.0.0';
   await app.listen(port, host);
   console.log(`Villano API running on http://${host}:${port}/api`);
+  console.log(`Base de donnees : ${describeDatabase()}`);
 }
 await bootstrap();

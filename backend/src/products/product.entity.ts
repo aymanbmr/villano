@@ -7,6 +7,7 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import { Category } from '../categories/category.entity.js';
+import { MONEY } from '../database.js';
 
 @Entity('products')
 export class Product {
@@ -20,7 +21,7 @@ export class Product {
   description: string | null;
 
   // Stored as a real number (e.g. 25.5 DH)
-  @Column({ type: 'real' })
+  @Column({ type: MONEY })
   price: number;
 
   @Column({ type: 'integer', default: 0 })

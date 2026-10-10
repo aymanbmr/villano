@@ -307,6 +307,38 @@ injoignable.
 En-tête des tickets réseau (nom, adresse, téléphone, message de fin) :
 Admin → Imprimantes. Pour les tickets du navigateur : `frontend/src/config.ts`.
 
+## Base de données : SQLite ou PostgreSQL
+
+Les deux moteurs sont pris en charge, et c'est `backend/.env` qui tranche.
+
+**Sans rien configurer, c'est SQLite** : un seul fichier, `backend/villano.sqlite`,
+créé tout seul au premier démarrage. Aucun service à installer, une sauvegarde
+est une copie de fichier, et déménager la caisse revient à copier ce fichier.
+C'est ce qu'il faut sur le PC du café.
+
+**`DATABASE_URL` renseignée, c'est PostgreSQL** :
+
+```
+DATABASE_URL=postgres://villano:motdepasse@127.0.0.1:5432/villano
+```
+
+Les montants sont stockés en `double precision`, l'équivalent exact du `real`
+de SQLite, afin que les deux moteurs calculent les totaux au centime près de la
+même façon. `numeric` serait plus orthodoxe pour de l'argent, mais le pilote
+PostgreSQL rend les `numeric` sous forme de chaînes de caractères, et
+`total + total` concaténerait au lieu d'additionner — une erreur silencieuse
+sur un ticket de caisse, c'est exactement ce qu'il ne faut pas.
+
+### `synchronize` : le vrai danger
+
+TypeORM sait reconstruire le schéma à partir du code à chaque démarrage. C'est
+commode tant que le schéma bouge, et dangereux dès que la base contient les
+ventes réelles : une colonne renommée est supprimée puis recréée vide.
+
+Le comportement par défaut suit donc le moteur — actif en SQLite (poste de
+développement), inactif en PostgreSQL (serveur hébergé). `DB_SYNC=true` le
+force, le temps de créer les tables sur une base neuve.
+
 ## Hébergement sur un VPS (dossier `deploy/`)
 
 Le serveur sert aussi l'application compilée, donc un seul processus sur un
@@ -320,12 +352,32 @@ git clone https://github.com/aymanbmr/villano.git /opt/villano
 sudo bash /opt/villano/deploy/vps-install.sh villano.exemple.ma
 ```
 
-Le script installe Node.js 22 et Caddy, crée l'utilisateur de service, compile
-l'application, écrit `backend/.env` avec un mot de passe admin et une clé de
-session tirés au hasard — **il les affiche une seule fois, à noter** —, déclare
-le service systemd, ouvre le pare-feu et programme une sauvegarde quotidienne.
-Caddy obtient le certificat HTTPS tout seul : il faut simplement que le domaine
-pointe déjà sur l'adresse IP du VPS.
+Le script installe Node.js 22, PostgreSQL et Caddy, crée la base et
+l'utilisateur de service, compile l'application, écrit `backend/.env` avec un
+mot de passe admin et une clé de session tirés au hasard — **il les affiche une
+seule fois, à noter** —, déclare le service systemd, ouvre le pare-feu et
+programme une sauvegarde quotidienne. Caddy obtient le certificat HTTPS tout
+seul : il faut simplement que le domaine pointe déjà sur l'adresse IP du VPS.
+
+### Reprendre les données de la caisse
+
+```bash
+# copier d'abord backend/villano.sqlite du PC de la caisse vers le VPS
+cd /opt/villano/backend
+npm run migrate:postgres -- /chemin/vers/villano.sqlite
+```
+
+Le transfert ouvre le fichier SQLite en lecture seule et refuse d'écrire dans
+une table qui contient déjà des lignes, sauf avec `--force`. Tout se fait dans
+une transaction : en cas d'erreur, rien n'est écrit.
+
+Vérifié sur la base de développement, 2 864 lignes dont 931 commandes et 1 869
+lignes de commande : chiffre d'affaires, meilleures ventes, répartition par
+catégorie, détail par serveur et numéros de ticket ressortent identiques des
+deux côtés. Une seule différence, et c'est une amélioration : PostgreSQL trie
+le menu selon l'alphabet français et place « Crêpe Nutella » avant
+« Croissant », là où SQLite compare les octets bruts et rejette tous les mots
+accentués après les autres.
 
 | Besoin | Commande |
 | --- | --- |
@@ -334,10 +386,12 @@ pointe déjà sur l'adresse IP du VPS.
 | Mettre à jour | `sudo bash /opt/villano/deploy/vps-update.sh` |
 | Sauvegarder maintenant | `villano-backup` |
 
-Les sauvegardes vont dans `/var/backups/villano`, gardées 30 jours : la base
-est copiée avec `sqlite3 .backup`, qui reste cohérent même si une commande est
-encaissée pendant l'opération, et les images dans une archive à part. Une
-sauvegarde est prise automatiquement avant chaque mise à jour.
+Les sauvegardes vont dans `/var/backups/villano`, gardées 30 jours : `pg_dump`
+pour PostgreSQL, `sqlite3 .backup` pour SQLite — jamais un simple `cp`, qui
+donnerait un fichier incohérent si une commande était encaissée pendant la
+copie. Les images partent dans une archive à part, et le script s'arrête en
+erreur si la sauvegarde produite est vide, pour ne pas découvrir le problème le
+jour de la restauration. Une sauvegarde précède chaque mise à jour.
 
 ### Ce qu'un VPS fait perdre : l'impression directe
 

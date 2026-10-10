@@ -1,4 +1,5 @@
 import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
+import { MONEY } from '../database.js';
 
 export const EMPLOYEE_ROLES = [
   'serveur',
@@ -28,7 +29,7 @@ export class Employee {
   phone: string | null;
 
   // Monthly salary in DH
-  @Column({ type: 'real', nullable: true })
+  @Column({ type: MONEY, nullable: true })
   salary: number | null;
 
   @Column({ type: 'text', nullable: true })
