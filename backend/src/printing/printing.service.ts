@@ -16,8 +16,6 @@ export interface PrinterConfig {
   port: number;
   /** 48 characters on 80 mm paper, 32 on 58 mm. */
   width: number;
-  /** Opens the cash drawer wired to this printer when a receipt is printed. */
-  openDrawer: boolean;
   /**
    * The printer's network serial number, burnt in at the factory. The host above
    * is only where it answered last time; this is how it is found again after the
@@ -37,8 +35,8 @@ export interface PrintingConfig {
 const SETTINGS_KEY = 'printing';
 
 const DEFAULTS: PrintingConfig = {
-  counter: { enabled: false, host: '', port: 9100, width: 48, openDrawer: false, mac: '' },
-  kitchen: { enabled: false, host: '', port: 9100, width: 48, openDrawer: false, mac: '' },
+  counter: { enabled: false, host: '', port: 9100, width: 48, mac: '' },
+  kitchen: { enabled: false, host: '', port: 9100, width: 48, mac: '' },
   autoKitchen: true,
   header: {
     name: 'Villano',
@@ -247,7 +245,6 @@ export class PrintingService {
       doc.rule().align('center').line(config.header.footer);
     }
 
-    if (paid && printer.openDrawer && order.paymentMethod === 'cash') doc.openDrawer();
     return doc.cut().build();
   }
 

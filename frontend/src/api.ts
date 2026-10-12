@@ -549,7 +549,6 @@ export interface PrinterConfig {
   host: string;
   port: number;
   width: number;
-  openDrawer: boolean;
   /** Network serial number: how the printer is found again if its IP changes. */
   mac: string;
 }
@@ -582,6 +581,9 @@ export const printingApi = {
   test: (printer: PrinterId) =>
     request<PrintResult>(`/printing/test/${printer}`, { method: 'POST' }),
   discover: () => request<FoundPrinter[]>('/printing/discover'),
+  // Accessible à la caisse, contrairement au reste de la configuration
+  setAutoKitchen: (enabled: boolean) =>
+    request<PrintingConfig>('/printing/auto-kitchen', json('PATCH', { enabled })),
   print: (kind: TicketKind, orderId: number) =>
     request<PrintResult>(`/printing/${kind}/${orderId}`, { method: 'POST' }),
 };

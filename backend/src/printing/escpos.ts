@@ -111,11 +111,6 @@ export class EscPos {
     return this.feed(4).raw([GS, 0x56, 66, 0x00]);
   }
 
-  /** Opens the cash drawer wired to the printer, if there is one. */
-  openDrawer() {
-    return this.raw([ESC, 0x70, 0x00, 0x19, 0xfa]);
-  }
-
   build() {
     return Buffer.concat(this.chunks);
   }

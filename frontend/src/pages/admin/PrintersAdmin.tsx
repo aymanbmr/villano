@@ -13,7 +13,6 @@ import { refreshPrintingConfig } from '../../usePrint';
 const fail = (e: unknown) => (e instanceof ApiError ? e.message : 'Erreur réseau');
 
 interface CardProps {
-  id: PrinterId;
   title: string;
   hint: string;
   value: PrinterConfig;
@@ -22,7 +21,7 @@ interface CardProps {
   onTest: () => void;
 }
 
-function PrinterCard({ id, title, hint, value, busy, onChange, onTest }: CardProps) {
+function PrinterCard({ title, hint, value, busy, onChange, onTest }: CardProps) {
   return (
     <section className="card printer-card">
       <div className="card-head">
@@ -69,16 +68,6 @@ function PrinterCard({ id, title, hint, value, busy, onChange, onTest }: CardPro
             <option value={32}>58 mm (32 caractères)</option>
           </select>
         </label>
-        {id === 'counter' && (
-          <label className="checkbox field">
-            <input
-              type="checkbox"
-              checked={value.openDrawer}
-              onChange={(e) => onChange({ openDrawer: e.target.checked })}
-            />
-            Ouvrir le tiroir-caisse
-          </label>
-        )}
       </div>
 
       <div className="printer-actions">
@@ -268,7 +257,6 @@ export function PrintersAdmin() {
 
       <div className="printer-grid">
         <PrinterCard
-          id="counter"
           title="Comptoir (caisse)"
           hint="Tickets de caisse et additions."
           value={config.counter}
@@ -277,7 +265,6 @@ export function PrintersAdmin() {
           onTest={() => test('counter')}
         />
         <PrinterCard
-          id="kitchen"
           title="Cuisine"
           hint="Bons de préparation, sans les prix."
           value={config.kitchen}

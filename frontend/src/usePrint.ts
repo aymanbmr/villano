@@ -40,16 +40,33 @@ async function waitForImages() {
 // ticket is visible under @media print (index.css).
 export function usePrint() {
   const [job, setJob] = useState<PrintJob | null>(null);
-  const [autoKitchen, setAutoKitchen] = useState(false);
+  const [handledByServer, setHandledByServer] = useState(false);
+  // Whether a kitchen slip should go out at all. The switch lives on the
+  // server rather than in each browser, so the caisse, a waiter's phone and
+  // the admin screen cannot disagree about it.
+  const [autoKitchen, setAutoKitchenState] = useState(true);
 
   useEffect(() => {
     let alive = true;
     void loadPrintingConfig().then((config) => {
-      if (alive) setAutoKitchen(serverPrintsKitchen(config));
+      if (!alive) return;
+      setHandledByServer(serverPrintsKitchen(config));
+      if (config) setAutoKitchenState(config.autoKitchen);
     });
     return () => {
       alive = false;
     };
+  }, []);
+
+  const setAutoKitchen = useCallback(async (value: boolean) => {
+    setAutoKitchenState(value); // l'interface répond tout de suite
+    try {
+      const saved = await printingApi.setAutoKitchen(value);
+      refreshPrintingConfig();
+      setHandledByServer(serverPrintsKitchen(saved));
+    } catch {
+      setAutoKitchenState(!value); // le serveur n'a pas suivi : on revient
+    }
   }, []);
 
   useEffect(() => {
@@ -87,5 +104,5 @@ export function usePrint() {
     setJob(next);
   }, []);
 
-  return { job, print, serverPrintsKitchen: autoKitchen };
+  return { job, print, serverPrintsKitchen: handledByServer, autoKitchen, setAutoKitchen };
 }

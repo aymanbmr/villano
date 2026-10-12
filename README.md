@@ -263,8 +263,15 @@ d'abandonner.
 Trois tickets, formatés pour une imprimante thermique 80 mm :
 
 - **Bon de cuisine** — bouton « Cuisine » sur une commande en cours, ou
-  automatiquement à l'envoi. Lors d'un ajout d'articles, seul l'ajout est
-  imprimé.
+  automatiquement à l'envoi si la case **« Imprimer le bon de cuisine à
+  l'envoi »** est cochée. Lors d'un ajout d'articles, seul l'ajout est imprimé.
+
+  Cette case est le **même interrupteur** que « Envoi automatique » dans
+  Admin → Imprimantes : le réglage vit sur le serveur, pas dans chaque
+  navigateur, pour que la caisse, le téléphone d'un serveur et l'écran
+  d'administration ne puissent pas se contredire. Elle est accessible à la
+  caisse, alors que les adresses des imprimantes restent réservées à
+  l'administration.
 - **Addition** — bouton « Addition » (pré-note, marquée « Non payé »).
 - **Ticket de caisse** — sort **automatiquement à l'encaissement**, sans que
   personne ne le demande ; le bouton de réimpression reste disponible dans
@@ -285,8 +292,7 @@ imprimantes, avec son adresse et son numéro réseau. Il ne reste qu'à affecter
 chaque ligne au comptoir ou à la cuisine. L'adresse peut aussi être saisie à la
 main (port 9100, celui que toutes les imprimantes ticket réseau écoutent) :
 
-- **Comptoir** — additions et tickets de caisse, avec ouverture du
-  tiroir-caisse à l'encaissement en espèces si la case est cochée.
+- **Comptoir** — additions et tickets de caisse.
 - **Cuisine** — bons de préparation, sans les prix, articles en double
   hauteur pour être lus depuis le passe.
 
@@ -512,9 +518,8 @@ jour de la restauration. Une sauvegarde précède chaque mise à jour.
 
 Les imprimantes sont sur le réseau local du café, derrière la box. Un serveur
 hébergé dans un datacenter ne peut pas les joindre : l'impression réseau
-décrite plus haut cesse de fonctionner, avec elle la coupe automatique, le
-tiroir-caisse et le bon de cuisine envoyé tout seul depuis le téléphone d'un
-serveur.
+décrite plus haut cesse de fonctionner, avec elle la coupe automatique et le
+bon de cuisine envoyé tout seul depuis le téléphone d'un serveur.
 
 Il reste l'impression par le navigateur de la caisse, qui passe par le pilote
 Windows et la boîte d'impression. C'est ce que fait l'application dès qu'aucune

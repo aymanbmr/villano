@@ -32,7 +32,6 @@ import { useOffline } from '../offline';
 type View = 'new' | 'open';
 type MobilePanel = 'menu' | 'cart';
 
-const AUTO_PRINT_KEY = 'villano.autoPrintKitchen';
 
 const errorMessage = (e: unknown) =>
   e instanceof ApiError ? e.message : 'Erreur réseau, réessayez.';
@@ -63,22 +62,16 @@ export function CaissePage() {
   const [toast, setToast] = useState<string | null>(null);
   const [paidOrder, setPaidOrder] = useState<Order | null>(null);
   const cart = useCart();
-  const { job: printJob, print, serverPrintsKitchen } = usePrint();
-  const [autoPrintKitchen, setAutoPrintKitchen] = useState(() => {
-    try {
-      return localStorage.getItem(AUTO_PRINT_KEY) === '1';
-    } catch {
-      return false;
-    }
-  });
-  const toggleAutoPrint = (value: boolean) => {
-    setAutoPrintKitchen(value);
-    try {
-      localStorage.setItem(AUTO_PRINT_KEY, value ? '1' : '0');
-    } catch {
-      // private mode: keep in memory only
-    }
-  };
+  // Le réglage vit sur le serveur : la caisse, le téléphone d'un serveur et
+  // l'écran d'administration montrent et commandent le même interrupteur.
+  const {
+    job: printJob,
+    print,
+    serverPrintsKitchen,
+    autoKitchen: autoPrintKitchen,
+    setAutoKitchen,
+  } = usePrint();
+  const toggleAutoPrint = (value: boolean) => void setAutoKitchen(value);
 
   const load = useCallback(async () => {
     try {
