@@ -300,6 +300,28 @@ Le bouton « Imprimer une page de test » de chaque carte enregistre les
 réglages puis envoie un ticket de contrôle : s'il ne sort pas, le message
 indique si l'imprimante est injoignable ou si elle refuse la connexion.
 
+#### Développer sans imprimante
+
+La fenêtre d'impression de Chrome n'appartient pas à l'application : elle
+apparaît dès qu'on passe par le navigateur, c'est-à-dire quand aucune
+imprimante réseau n'est configurée. Pour voir le fonctionnement réel sans
+matériel, le projet embarque une imprimante simulée :
+
+```bash
+cd backend && npm run fake:printer
+```
+
+Elle écoute sur le port 9100 comme une vraie et affiche les tickets dans le
+terminal, commandes ESC/POS traduites. Mettez ensuite `127.0.0.1` dans
+Admin → Imprimantes, cochez « Activée », enregistrez : les tickets partent
+alors tout seuls, sans que rien ne s'ouvre à l'écran.
+
+Si vous tenez à imprimer par le navigateur sans fenêtre, il faut lancer Chrome
+avec `--kiosk-printing`, ce que font les raccourcis du dossier `desktop/`. Le
+ticket part alors sur l'imprimante par défaut de Windows — mais si cette
+imprimante par défaut est « Microsoft Print to PDF », Windows demandera où
+enregistrer le fichier, et la fenêtre réapparaîtra.
+
 #### Changer de box, de Wi-Fi, de réseau
 
 Une imprimante est jointe par son adresse IP, et une adresse IP appartient à un
