@@ -199,12 +199,7 @@ export class PrintingService {
   private render(kind: TicketKind, order: Order, config: PrintingConfig, printer: PrinterConfig) {
     const doc = new EscPos(printer.width);
     const paid = kind === 'receipt' && order.status === 'paid';
-    const where =
-      order.orderType === 'takeaway'
-        ? 'À emporter'
-        : order.tableNumber
-          ? `Table ${order.tableNumber}`
-          : 'Sur place';
+    const where = order.orderType === 'takeaway' ? 'À emporter' : 'Sur place';
 
     doc.align('center').bold(true).size(2).line(config.header.name).size(1);
     if (kind !== 'kitchen') {

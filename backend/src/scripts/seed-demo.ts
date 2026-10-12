@@ -123,7 +123,6 @@ async function main() {
       const order = orders.create({
         ticketNumber: `${dayKey}-${String(seq).padStart(3, '0')}`,
         orderType: takeaway ? 'takeaway' : 'dine_in',
-        tableNumber: takeaway ? null : String(1 + Math.floor(rand() * 12)),
         ...(waiters.length ? (({ id, firstName, lastName }) => ({
           waiterId: id,
           waiterName: `${firstName} ${lastName}`,

@@ -5,12 +5,12 @@ import {
   type CreateOrderPayload,
   type Order,
   type OrderType,
+  type PaymentMethod,
   type StaffMember,
 } from '../api';
 import type { CartLine } from '../useCart';
 import { Icon } from './Icon';
 import { SHOW_STOCK } from '../config';
-import { TablePicker } from './TablePicker';
 import { WaiterPicker } from './WaiterPicker';
 
 interface Props {
@@ -21,7 +21,6 @@ interface Props {
   // When set, the cart adds lines to this open order instead of creating one
   appendTo: Order | null;
   // Table numbers already busy with another open dine-in order
-  occupiedTables: string[];
   staff: StaffMember[];
   onSetQuantity: (productId: number, quantity: number) => void;
   onRemove: (productId: number) => void;
@@ -38,7 +37,6 @@ export function CartPanel({
   submitting,
   error,
   appendTo,
-  occupiedTables,
   staff,
   onSetQuantity,
   onRemove,
@@ -49,33 +47,32 @@ export function CartPanel({
   onToggleAutoPrint,
 }: Props) {
   const [orderType, setOrderType] = useState<OrderType>('dine_in');
-  const [tableNumber, setTableNumber] = useState('');
   const [waiter, setWaiter] = useState<StaffMember | null>(null);
   const [note, setNote] = useState('');
-  const [pickerOpen, setPickerOpen] = useState(false);
   const [waiterPickerOpen, setWaiterPickerOpen] = useState(false);
+  // The order is settled as it is sent; cash unless told otherwise
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash');
 
   // Reset the header inputs whenever the cart is emptied (new order)
   useEffect(() => {
     if (lines.length === 0) {
-      setTableNumber('');
       setWaiter(null);
       setNote('');
+      setPaymentMethod('cash');
     }
   }, [lines.length]);
 
-  // Dine-in orders must carry a table number and a responsible waiter
-  // (also enforced by the API)
-  const tableMissing = !appendTo && orderType === 'dine_in' && tableNumber.trim() === '';
-  const waiterMissing = !appendTo && orderType === 'dine_in' && !waiter;
+  // Every order answers to a waiter, who collects for it (also enforced by the API)
+  const waiterMissing = !appendTo && !waiter;
 
   const submit = () =>
     onSubmit({
       items: lines.map((l) => ({ productId: l.product.id, quantity: l.quantity })),
       orderType,
-      tableNumber: orderType === 'dine_in' && tableNumber.trim() ? tableNumber.trim() : undefined,
-      waiterId: waiter?.id,
+      waiterId: waiter?.id ?? 0,
+      waiterName: waiter ? `${waiter.firstName} ${waiter.lastName}` : null,
       note: note.trim() || undefined,
+      payment: { paymentMethod },
     });
 
   return (
@@ -111,45 +108,34 @@ export function CartPanel({
               À emporter
             </button>
           </div>
-          {orderType === 'dine_in' && (
-            <>
-              <button
-                type="button"
-                className={`table-select-btn${tableMissing && lines.length > 0 ? ' is-invalid' : ''}${tableNumber ? '' : ' is-empty'}`}
-                onClick={() => setPickerOpen(true)}
-              >
-                <span className="row-icon">
-                  <Icon name="grid" size={16} />
-                  {tableNumber ? `Table ${tableNumber}` : 'Choisir une table (obligatoire)'}
-                </span>
-                <Icon name="edit" size={14} />
-              </button>
-              <button
-                type="button"
-                className={`table-select-btn${waiterMissing && lines.length > 0 ? ' is-invalid' : ''}${waiter ? '' : ' is-empty'}`}
-                onClick={() => setWaiterPickerOpen(true)}
-              >
-                <span className="row-icon">
-                  <Icon name="users" size={16} />
-                  {waiter ? `${waiter.firstName} ${waiter.lastName}` : 'Choisir le serveur (obligatoire)'}
-                </span>
-                <Icon name="edit" size={14} />
-              </button>
-            </>
-          )}
+          <button
+            type="button"
+            className={`table-select-btn${waiterMissing && lines.length > 0 ? ' is-invalid' : ''}${waiter ? '' : ' is-empty'}`}
+            onClick={() => setWaiterPickerOpen(true)}
+          >
+            <span className="row-icon">
+              <Icon name="users" size={16} />
+              {waiter ? `${waiter.firstName} ${waiter.lastName}` : 'Choisir le serveur (obligatoire)'}
+            </span>
+            <Icon name="edit" size={14} />
+          </button>
+          <div className="segmented">
+            <button
+              type="button"
+              className={paymentMethod === 'cash' ? 'is-active' : ''}
+              onClick={() => setPaymentMethod('cash')}
+            >
+              <Icon name="cash" size={15} /> Espèces
+            </button>
+            <button
+              type="button"
+              className={paymentMethod === 'card' ? 'is-active' : ''}
+              onClick={() => setPaymentMethod('card')}
+            >
+              <Icon name="card" size={15} /> Carte
+            </button>
+          </div>
         </>
-      )}
-
-      {pickerOpen && (
-        <TablePicker
-          selected={tableNumber}
-          occupied={occupiedTables}
-          onSelect={(t) => {
-            setTableNumber(t);
-            setPickerOpen(false);
-          }}
-          onClose={() => setPickerOpen(false)}
-        />
       )}
 
       {waiterPickerOpen && (
@@ -228,14 +214,8 @@ export function CartPanel({
         </label>
 
         {error && <div className="error">{error}</div>}
-        {(tableMissing || waiterMissing) && lines.length > 0 && (
-          <div className="hint">
-            {tableMissing && waiterMissing
-              ? 'Indiquez la table et le serveur pour envoyer la commande.'
-              : tableMissing
-                ? 'Indiquez le numéro de table pour envoyer la commande.'
-                : 'Choisissez le serveur responsable pour envoyer la commande.'}
-          </div>
+        {waiterMissing && lines.length > 0 && (
+          <div className="hint">Choisissez le serveur responsable pour encaisser la commande.</div>
         )}
 
         <div className="cart-actions">
@@ -247,15 +227,15 @@ export function CartPanel({
           <button
             type="button"
             className="btn btn-primary btn-lg"
-            disabled={lines.length === 0 || submitting || tableMissing || waiterMissing}
-            title={tableMissing || waiterMissing ? 'Indiquez la table et le serveur' : undefined}
+            disabled={lines.length === 0 || submitting || waiterMissing}
+            title={waiterMissing ? 'Choisissez le serveur responsable' : undefined}
             onClick={submit}
           >
             {submitting
               ? 'Envoi…'
               : appendTo
                 ? `Ajouter à la commande`
-                : `Envoyer la commande`}
+                : `Encaisser ${formatPrice(subtotal)}`}
           </button>
         </div>
       </div>

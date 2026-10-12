@@ -72,7 +72,6 @@ export interface Order {
   id: number;
   ticketNumber: string;
   orderType: OrderType;
-  tableNumber: string | null;
   waiterId: number | null;
   waiterName: string | null;
   status: OrderStatus;
@@ -105,19 +104,18 @@ export interface PayOrderPayload {
 export interface CreateOrderPayload {
   items: OrderLinePayload[];
   orderType?: OrderType;
-  tableNumber?: string;
-  waiterId?: number;
+  // The waiter answers for the order and for the money it brings in
+  waiterId: number;
   // Kept locally so an offline order can display/print the waiter's name
   waiterName?: string | null;
   note?: string;
-  // Pay immediately instead of leaving the order open
+  // An order is settled as it is taken; omitting this means cash, exact amount
   payment?: PayOrderPayload;
 }
 
 export interface UpdateOrderPayload {
   waiterId?: number | null;
   orderType?: OrderType;
-  tableNumber?: string | null;
   note?: string | null;
 }
 
@@ -231,14 +229,15 @@ export const api = {
   products: async () => applyPendingStock(await cached('products', () => request<Product[]>('/products'))),
   staff: () => cached('staff', () => request<StaffMember[]>('/staff')),
 
-  // Server list + orders still waiting in the outbox, newest last
-  pendingOrders: async (): Promise<Order[]> => {
+  // Orders taken today, which can still be added to or cancelled, plus those
+  // still waiting in the outbox. Newest last.
+  recentOrders: async (): Promise<Order[]> => {
     const products = cacheGet<Product[]>('products') ?? [];
-    const locals = getLocalOrders()
-      .filter((l) => !l.payment)
-      .map((l) => localToOrder(l, products));
+    const locals = getLocalOrders().map((l) => localToOrder(l, products));
     try {
-      const server = await request<Order[]>('/orders?status=pending');
+      const today = new Date();
+      const day = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+      const server = await request<Order[]>(`/orders?status=paid&from=${day}&to=${day}&limit=200`);
       cacheSet('pendingOrders', server);
       return [...applyOpsToOrders(server), ...locals];
     } catch (e) {
@@ -404,11 +403,9 @@ export function formatPrice(amount: number) {
   return `${amount.toFixed(2)} ${CURRENCY}`;
 }
 
-// "Table 4" / "Sur place" / "À emporter" — based on the order type, not on
-// whether a table number was typed.
-export function orderLabel(order: Pick<Order, 'orderType' | 'tableNumber'>) {
-  if (order.orderType === 'takeaway') return 'À emporter';
-  return order.tableNumber ? `Table ${order.tableNumber}` : 'Sur place';
+// "Sur place" / "À emporter"
+export function orderLabel(order: Pick<Order, 'orderType'>) {
+  return order.orderType === 'takeaway' ? 'À emporter' : 'Sur place';
 }
 
 // ---------- Admin: products, categories, employees ----------

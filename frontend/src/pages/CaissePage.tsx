@@ -86,7 +86,7 @@ export function CaissePage() {
         api.categories(),
         api.products(),
         api.staff(),
-        api.pendingOrders(),
+        api.recentOrders(),
         workDayApi.current(),
       ]);
       setCategories(cats);
@@ -154,7 +154,7 @@ export function CaissePage() {
       } else {
         order = await api.createOrder(payload);
         const where = orderLabel(order);
-        setToast(`Commande ${order.ticketNumber} envoyée · ${where}`);
+        setToast(`Commande ${order.ticketNumber} encaissée · ${where}`);
         if (autoPrintKitchen && !serverPrintsKitchen) void print({ kind: 'kitchen', order });
       }
       cart.clear();
@@ -209,11 +209,13 @@ export function CaissePage() {
   const updateItem = (order: Order, itemId: number, quantity: number) =>
     editOrder(() => api.updateItem(order.id, itemId, quantity));
 
-  const deleteOrder = async (order: Order) => {
+  // Orders are settled when taken, so a mistake is cancelled rather than
+  // deleted: the sale stays in the history, marked as cancelled.
+  const cancelOrder = async (order: Order) => {
     setSelectedOrderId(null);
     await editOrder(
-      () => api.deleteOrder(order.id),
-      `Commande ${order.ticketNumber} supprimée, stock remis`,
+      () => api.cancelOrder(order.id),
+      `Commande ${order.ticketNumber} annulée`,
     );
   };
 
@@ -234,10 +236,6 @@ export function CaissePage() {
     cart.clear();
   };
 
-  const occupiedTables = pendingOrders
-    .filter((o) => o.orderType === 'dine_in' && o.tableNumber && o.id !== appendTo?.id)
-    .map((o) => o.tableNumber as string);
-
   // Offline the day state can only be the last known one: taking orders must
   // never be blocked by it (they sync once the server is back).
   const askToOpenDay = workDay === null && online && !dayPromptHidden;
@@ -252,7 +250,7 @@ export function CaissePage() {
               {workDay && (
                 <WorkDayButton
                   workDay={workDay}
-                  pendingCount={pendingOrders.length}
+                  pendingCount={pendingOrders.filter((o) => o.status === 'pending').length}
                   onClosed={() => {
                     setWorkDay(null);
                     // closing is deliberate: don't pop the question straight back up
@@ -299,7 +297,7 @@ export function CaissePage() {
               className={view === 'open' ? 'is-active' : ''}
               onClick={() => setView('open')}
             >
-              En cours
+              Du jour
               {pendingOrders.length > 0 && (
                 <span className="pill pill-warn">{pendingOrders.length}</span>
               )}
@@ -313,7 +311,6 @@ export function CaissePage() {
               submitting={busy}
               error={cartError}
               appendTo={appendTo}
-              occupiedTables={occupiedTables}
               staff={staff}
               onSetQuantity={cart.setQuantity}
               onRemove={cart.remove}
@@ -335,7 +332,7 @@ export function CaissePage() {
               onAddItems={startAppend}
               onUpdate={updateOrder}
               onUpdateItem={updateItem}
-              onDelete={deleteOrder}
+              onDelete={cancelOrder}
               onPrint={(order: Order, kind: TicketKind) => void print({ kind, order })}
             />
           )}

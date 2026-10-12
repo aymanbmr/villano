@@ -3,6 +3,8 @@ import { formatPrice, type PaymentMethod, type PayOrderPayload } from '../api';
 import { Icon } from './Icon';
 
 interface Props {
+  /** Libellé du bouton : l'encaissement initial ou sa correction. */
+  action?: string;
   subtotal: number;
   submitting: boolean;
   error: string | null;
@@ -13,14 +15,16 @@ const QUICK_AMOUNTS = [10, 20, 50, 100, 200];
 
 // Payment inputs used when settling an order: discount, cash/card,
 // amount received and the change to give back.
-export function PaymentForm({ subtotal, submitting, error, onSubmit }: Props) {
+export function PaymentForm({ subtotal, submitting, error, onSubmit, action = 'Encaisser' }: Props) {
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash');
   const [discount, setDiscount] = useState('');
   const [amountPaid, setAmountPaid] = useState('');
 
   const discountValue = Math.min(Number(discount) || 0, subtotal);
   const total = Math.round((subtotal - discountValue) * 100) / 100;
-  const paid = paymentMethod === 'card' ? total : Number(amountPaid) || 0;
+  // Rien de saisi : le compte est juste. C'est le cas d'une correction sur une
+  // commande deja encaissee, ou le montant n'a pas a etre resaisi.
+  const paid = paymentMethod === 'card' || amountPaid.trim() === '' ? total : Number(amountPaid) || 0;
   const change = Math.round((paid - total) * 100) / 100;
   const canSubmit = !submitting && paid >= total;
 
@@ -109,7 +113,7 @@ export function PaymentForm({ subtotal, submitting, error, onSubmit }: Props) {
         disabled={!canSubmit}
         onClick={submit}
       >
-        {submitting ? 'Encaissement…' : `Encaisser ${formatPrice(total)}`}
+        {submitting ? 'Enregistrement…' : `${action} ${formatPrice(total)}`}
       </button>
     </div>
   );

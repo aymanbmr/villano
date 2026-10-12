@@ -38,8 +38,9 @@ export class WorkDaysService {
     if (!day) throw new NotFoundException('Journée introuvable');
     if (day.closedAt) throw new BadRequestException('Cette journée est déjà clôturée');
 
-    // Closing with unsettled orders would leave sales outside any day: they
-    // must be cashed in or cancelled first.
+    // Orders are settled when taken, so nothing can be left hanging. Older
+    // databases may still hold unsettled ones, and closing over them would
+    // leave sales outside any day.
     const pending = await this.orders.count({ where: { status: 'pending' } });
     if (pending > 0) {
       throw new BadRequestException(

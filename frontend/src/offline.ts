@@ -227,7 +227,6 @@ export function localToOrder(local: LocalOrder, products: Product[]): Order {
     ticketNumber: `Hors ligne #${Math.abs(local.localId)}`,
     clientId: local.clientId,
     orderType: local.payload.orderType ?? 'dine_in',
-    tableNumber: local.payload.tableNumber ?? null,
     waiterId: local.payload.waiterId ?? null,
     waiterName: local.payload.waiterName ?? null,
     status: local.payment ? 'paid' : 'pending',
@@ -303,7 +302,6 @@ export function localUpdateOrder(localId: number, patch: UpdateOrderPayload & { 
       ...l.payload,
       // the local payload mirrors CreateOrderPayload, where empty means absent
       ...(patch.orderType !== undefined ? { orderType: patch.orderType } : {}),
-      ...(patch.tableNumber !== undefined ? { tableNumber: patch.tableNumber ?? undefined } : {}),
       ...(patch.waiterId !== undefined ? { waiterId: patch.waiterId ?? undefined } : {}),
       ...(patch.waiterName !== undefined ? { waiterName: patch.waiterName } : {}),
       ...(patch.note !== undefined ? { note: patch.note ?? undefined } : {}),
@@ -490,7 +488,6 @@ export async function sync(): Promise<{ sent: number; failed: number }> {
         occurredAt: local.occurredAt,
         items: local.payload.items,
         orderType: local.payload.orderType,
-        tableNumber: local.payload.tableNumber,
         waiterId: local.payload.waiterId,
         note: local.payload.note,
       };

@@ -28,7 +28,7 @@ La session dure `JWT_EXPIRES_IN` (14 h par défaut), bouton **Déconnexion** en 
 
 ## Pages
 
-- `#/caisse` — prise de commande, commandes en cours, encaissement, tickets
+- `#/caisse` — prise de commande encaissée aussitôt, commandes du jour, tickets
 - `#/admin/dashboard` — tableau de bord : chiffre d'affaires, commandes, ticket moyen, articles vendus (avec variation vs période précédente), CA par jour et par heure, espèces/carte, meilleures ventes, ventes par catégorie, produits sans vente
 - `#/admin/ventes` — détail de chaque commande encaissée ou annulée (lignes, paiement, remise), recherche, réimpression du ticket, annulation
 - `#/admin/menu` — produits (nom, catégorie, prix, stock, photo, visible/masqué) et catégories
@@ -73,12 +73,12 @@ Toutes les routes exigent `Authorization: Bearer <token>` sauf `POST /auth/login
 | POST    | /employees              | Créer `{ firstName, lastName, role, phone?, salary?, hireDate?, pin?, notes? }` |
 | PATCH   | /employees/:id          | Modifier (dont `isActive`)                   |
 | DELETE  | /employees/:id          | Supprimer                                    |
-| GET     | /orders?status=pending  | Commandes (`pending` = en cours, `paid`, `cancelled`) |
+| GET     | /orders?status=paid     | Commandes (`paid`, `cancelled`) |
 | POST    | /orders                 | Envoyer une commande en cuisine (réserve le stock, statut `pending`) |
-| POST    | /orders/:id/items       | Ajouter des articles à une commande en cours |
-| PATCH   | /orders/:id             | Modifier table / type / note d'une commande en cours |
+| POST    | /orders/:id/items       | Ajouter des articles ; le montant encaissé suit |
+| PATCH   | /orders/:id             | Modifier le type, le serveur ou la note d'une commande |
 | PATCH   | /orders/:id/items/:itemId | Changer la quantité d'une ligne (`{ quantity: 0 }` la retire) |
-| DELETE  | /orders/:id             | Supprimer une commande en cours (remet le stock) |
+| DELETE  | /orders/:id             | Réservé aux commandes non soldées d'anciennes bases |
 | PATCH   | /orders/:id/pay         | Encaisser `{ paymentMethod, amountPaid?, discount? }` |
 | PATCH   | /orders/:id/cancel      | Annuler (remet le stock)                     |
 
@@ -140,6 +140,28 @@ L'application est une **PWA** : elle s'installe sur l'écran d'accueil et se lan
 4. Lancer « Villano » depuis l'écran d'accueil : caisse et admin (selon le rôle) sont adaptés au format téléphone.
 
 En production, servir l'app en **HTTPS** (certificat) pour que l'installation soit proposée automatiquement et que le mode hors-ligne soit possible.
+
+## Prise de commande
+
+Une commande est **encaissée au moment où elle est saisie** : on choisit le
+serveur responsable, sur place ou à emporter, espèces ou carte, et c'est fait.
+Il n'y a pas d'étape « en cours » à solder plus tard.
+
+Le serveur choisi répond de la commande et de l'argent qu'elle rapporte, ce qui
+alimente le détail de fin de journée : combien chaque serveur a encaissé, en
+espèces et par carte.
+
+Ensuite, depuis l'onglet **Du jour** :
+
+- **Articles** ajoute des lignes à une commande déjà encaissée ; le total suit,
+  et le montant encaissé avec lui, le serveur ayant pris la différence.
+- **Annuler la commande** la retire du chiffre d'affaires sans l'effacer : elle
+  reste dans l'historique, marquée annulée, et le stock est remis.
+- **Corriger** rectifie le règlement — passer d'espèces à carte, appliquer une
+  remise, ou noter le montant réellement reçu.
+
+Il n'y a **pas de numéro de table**. La distinction sur place / à emporter est
+conservée, elle apparaît sur les tickets et dans les statistiques.
 
 ## Journée de caisse
 
@@ -256,8 +278,8 @@ main (port 9100, celui que toutes les imprimantes ticket réseau écoutent) :
 
 - **Comptoir** — additions et tickets de caisse, avec ouverture du
   tiroir-caisse à l'encaissement en espèces si la case est cochée.
-- **Cuisine** — bons de préparation, sans les prix, table et articles en
-  double hauteur pour être lus depuis le passe.
+- **Cuisine** — bons de préparation, sans les prix, articles en double
+  hauteur pour être lus depuis le passe.
 
 Le bouton « Imprimer une page de test » de chaque carte enregistre les
 réglages puis envoie un ticket de contrôle : s'il ne sort pas, le message

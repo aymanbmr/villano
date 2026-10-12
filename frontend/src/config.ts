@@ -7,9 +7,6 @@ export const RESTAURANT = {
   footer: 'Merci de votre visite, à bientôt !',
 };
 
-// Number of tables shown in the visual floor plan (sélection de table).
-export const TABLE_COUNT = 16;
-
 // Gestion du stock : compteurs sur les produits, alertes de stock bas et
 // blocage des produits épuisés. Mettre à true pour la réactiver — et passer
 // STOCK_ENABLED=true dans backend/.env pour que le serveur suive.

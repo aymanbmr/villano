@@ -38,7 +38,6 @@ export function SalesHistory() {
       (o) =>
         o.ticketNumber.toLowerCase().includes(q) ||
         (o.waiterName ?? '').toLowerCase().includes(q) ||
-        (o.tableNumber ?? '').toLowerCase() === q ||
         o.items.some((i) => i.productName.toLowerCase().includes(q)),
     );
   }, [orders, search]);

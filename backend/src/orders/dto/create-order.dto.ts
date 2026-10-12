@@ -69,22 +69,17 @@ export class CreateOrderDto extends AddItemsDto {
   @IsIn(['dine_in', 'takeaway'])
   orderType?: 'dine_in' | 'takeaway';
 
-  @IsOptional()
-  @IsString()
-  @MaxLength(20)
-  tableNumber?: string;
-
-  // Employee responsible for the order, chosen by the cashier
-  @IsOptional()
+  // Employee responsible for the order and for the money it brings in
   @IsInt()
-  waiterId?: number;
+  waiterId: number;
 
   @IsOptional()
   @IsString()
   @MaxLength(300)
   note?: string;
 
-  // Optional: pay immediately (e.g. takeaway). Omit to leave the order pending.
+  // An order is settled the moment it is taken. Omitting this records a cash
+  // payment of the exact amount, which is the common case.
   @IsOptional()
   @ValidateNested()
   @Type(() => PayOrderDto)
@@ -96,11 +91,6 @@ export class UpdateOrderDto {
   @IsOptional()
   @IsIn(['dine_in', 'takeaway'])
   orderType?: 'dine_in' | 'takeaway';
-
-  @IsOptional()
-  @IsString()
-  @MaxLength(20)
-  tableNumber?: string | null;
 
   @IsOptional()
   @IsInt()

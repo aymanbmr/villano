@@ -9,7 +9,6 @@ import {
 } from '../api';
 import { PaymentForm } from './PaymentForm';
 import { Icon } from './Icon';
-import { TablePicker } from './TablePicker';
 import { WaiterPicker } from './WaiterPicker';
 import type { TicketKind } from './PrintTicket';
 
@@ -54,7 +53,7 @@ export function OpenOrders({
   if (orders.length === 0) {
     return (
       <div className="cart-body">
-        <p className="empty">Aucune commande en cours.</p>
+        <p className="empty">Aucune commande aujourd’hui.</p>
       </div>
     );
   }
@@ -95,9 +94,6 @@ export function OpenOrders({
                   busy={busy}
                   error={error}
                   staff={staff}
-                  occupiedTables={orders
-                    .filter((o) => o.id !== order.id && o.orderType === 'dine_in' && o.tableNumber)
-                    .map((o) => o.tableNumber as string)}
                   onPay={onPay}
                   onAddItems={onAddItems}
                   onUpdate={onUpdate}
@@ -116,7 +112,6 @@ export function OpenOrders({
 
 type DetailProps = Omit<Props, 'orders' | 'selectedId' | 'onSelect'> & {
   order: Order;
-  occupiedTables: string[];
 };
 
 function OrderDetail({
@@ -124,7 +119,6 @@ function OrderDetail({
   busy,
   error,
   staff,
-  occupiedTables,
   onPay,
   onAddItems,
   onUpdate,
@@ -134,23 +128,15 @@ function OrderDetail({
 }: DetailProps) {
   // Local copy of the editable note; saved on blur
   const [note, setNote] = useState(order.note ?? '');
-  const [pickerOpen, setPickerOpen] = useState(false);
   const [waiterPickerOpen, setWaiterPickerOpen] = useState(false);
 
   useEffect(() => {
     setNote(order.note ?? '');
   }, [order.note]);
 
-  const selectTable = (table: string) => {
-    setPickerOpen(false);
-    if (order.orderType !== 'dine_in' || table !== order.tableNumber) {
-      onUpdate(order, { orderType: 'dine_in', tableNumber: table });
-    }
-  };
-
   const switchToDineIn = () => {
     if (order.orderType === 'dine_in') return;
-    setPickerOpen(true);
+    onUpdate(order, { orderType: 'dine_in' });
   };
   const saveNote = () => {
     const value = note.trim();
@@ -187,37 +173,17 @@ function OrderDetail({
           À emporter
         </button>
       </div>
-      {order.orderType === 'dine_in' && (
-        <>
-          <button type="button" className="table-select-btn" onClick={() => setPickerOpen(true)}>
-            <span className="row-icon">
-              <Icon name="grid" size={16} />
-              Table {order.tableNumber}
-            </span>
-            <Icon name="edit" size={14} />
-          </button>
-          <button
-            type="button"
-            className={`table-select-btn${order.waiterName ? '' : ' is-empty'}`}
-            onClick={() => setWaiterPickerOpen(true)}
-          >
-            <span className="row-icon">
-              <Icon name="users" size={16} />
-              {order.waiterName ?? 'Choisir le serveur'}
-            </span>
-            <Icon name="edit" size={14} />
-          </button>
-        </>
-      )}
-
-      {pickerOpen && (
-        <TablePicker
-          selected={order.tableNumber ?? ''}
-          occupied={occupiedTables}
-          onSelect={selectTable}
-          onClose={() => setPickerOpen(false)}
-        />
-      )}
+      <button
+        type="button"
+        className={`table-select-btn${order.waiterName ? '' : ' is-empty'}`}
+        onClick={() => setWaiterPickerOpen(true)}
+      >
+        <span className="row-icon">
+          <Icon name="users" size={16} />
+          {order.waiterName ?? 'Choisir le serveur'}
+        </span>
+        <Icon name="edit" size={14} />
+      </button>
 
       {waiterPickerOpen && (
         <WaiterPicker
@@ -289,16 +255,18 @@ function OrderDetail({
           className="btn btn-ghost btn-danger"
           disabled={busy}
           onClick={() => {
-            if (window.confirm(`Supprimer la commande ${order.ticketNumber} ? Le stock sera remis.`)) {
+            if (window.confirm(`Annuler la commande ${order.ticketNumber} ? Elle restera dans l’historique et le stock sera remis.`)) {
               onDelete(order);
             }
           }}
         >
-          <Icon name="trash" size={15} /> Supprimer
+          <Icon name="x" size={15} /> Annuler la commande
         </button>
       </div>
 
+      {/* L'encaissement a eu lieu a la prise de commande ; ceci le corrige */}
       <PaymentForm
+        action="Corriger · "
         key={order.id}
         subtotal={order.subtotal}
         submitting={busy}

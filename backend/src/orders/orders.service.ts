@@ -27,8 +27,8 @@ const localDay = (s: string) => {
 };
 
 // Error messages are shown as-is to the cashier, hence French
-const TABLE_REQUIRED = 'Le numéro de table est obligatoire pour une commande sur place';
 const WAITER_REQUIRED = 'Choisissez le serveur responsable de cette commande';
+const CANCELLED = 'Cette commande est annulée';
 const DAY_CLOSED = 'Ouvrez la journée avant de prendre des commandes';
 
 @Injectable()
@@ -69,8 +69,8 @@ export class OrdersService {
     return order;
   }
 
-  // Creates the order and reserves stock right away (the kitchen starts
-  // preparing). Payment normally happens later via pay().
+  // An order is settled the moment it is taken: the waiter collects, and is
+  // accountable for it until the day is closed. There is no open-order stage.
   create(dto: CreateOrderDto) {
     return this.dataSource.transaction(async (manager) => {
       // An order taken offline carries its own id and timestamp: replaying it
@@ -89,14 +89,8 @@ export class OrdersService {
       }
 
       const orderType = dto.orderType ?? 'dine_in';
-      const tableNumber = dto.tableNumber?.trim() || null;
-      if (orderType === 'dine_in' && !tableNumber) {
-        throw new BadRequestException(TABLE_REQUIRED);
-      }
       const waiter = await this.resolveWaiter(manager, dto.waiterId);
-      if (orderType === 'dine_in' && !waiter) {
-        throw new BadRequestException(WAITER_REQUIRED);
-      }
+      if (!waiter) throw new BadRequestException(WAITER_REQUIRED);
       const items = await this.reserveItems(manager, dto.items, [], offline);
       const order = manager.getRepository(Order).create({
         ticketNumber: await this.nextTicketNumber(
@@ -105,15 +99,16 @@ export class OrdersService {
         ),
         clientId: dto.clientId ?? null,
         orderType,
-        tableNumber,
-        waiterId: waiter?.id ?? null,
-        waiterName: waiter?.name ?? null,
+        waiterId: waiter.id,
+        waiterName: waiter.name,
         note: dto.note ?? null,
         status: 'pending',
         items,
       });
       this.recomputeTotals(order);
-      if (dto.payment) this.applyPayment(order, dto.payment);
+      // Settled on the spot. Without an explicit payment, cash for the exact
+      // amount — the usual case, and what keeps the per-waiter cash total true.
+      this.applyPayment(order, dto.payment ?? { paymentMethod: 'cash' });
       const saved = await manager.getRepository(Order).save(order);
       if (offline) {
         // createdAt is filled by @CreateDateColumn; put the real time back
@@ -126,25 +121,29 @@ export class OrdersService {
     });
   }
 
-  // The customer orders more while the order is open
+  // The customer orders more after the fact: the lines are added and the
+  // amount collected follows, the waiter having taken the difference.
   addItems(id: number, dto: AddItemsDto) {
     return this.dataSource.transaction(async (manager) => {
       const order = await this.loadForUpdate(manager, id);
-      if (order.status !== 'pending') {
-        throw new BadRequestException('Seules les commandes en cours peuvent être modifiées');
-      }
+      this.assertNotCancelled(order);
       order.items = await this.reserveItems(manager, dto.items, order.items);
       this.recomputeTotals(order);
+      this.settleToTotal(order);
       return manager.getRepository(Order).save(order);
     });
   }
 
+  // Orders are settled when taken, so this now corrects a settlement: switch
+  // cash to card, adjust a discount, or record the cash actually handed over.
   pay(id: number, dto: PayOrderDto) {
     return this.dataSource.transaction(async (manager) => {
       const order = await this.loadForUpdate(manager, id);
-      if (order.status === 'paid') throw new BadRequestException('Commande déjà payée');
-      if (order.status === 'cancelled') throw new BadRequestException('Commande annulée');
+      this.assertNotCancelled(order);
+      const paidAt = order.paidAt ?? undefined;
       this.applyPayment(order, dto);
+      // Correcting the method must not move the sale to another day
+      if (paidAt && !dto.paidAt) order.paidAt = paidAt;
       return manager.getRepository(Order).save(order);
     });
   }
@@ -162,26 +161,19 @@ export class OrdersService {
   }
 
 
-  // Change table / type / note of an open order
+  // Change the type, the waiter in charge or the note
   update(id: number, dto: UpdateOrderDto) {
     return this.dataSource.transaction(async (manager) => {
       const order = await this.loadForUpdate(manager, id);
-      this.assertOpen(order);
+      this.assertNotCancelled(order);
       if (dto.orderType !== undefined) order.orderType = dto.orderType;
-      if (dto.tableNumber !== undefined) order.tableNumber = dto.tableNumber?.trim() || null;
       if (dto.waiterId !== undefined) {
         const waiter = await this.resolveWaiter(manager, dto.waiterId ?? undefined);
-        order.waiterId = waiter?.id ?? null;
-        order.waiterName = waiter?.name ?? null;
+        if (!waiter) throw new BadRequestException(WAITER_REQUIRED);
+        order.waiterId = waiter.id;
+        order.waiterName = waiter.name;
       }
       if (dto.note !== undefined) order.note = dto.note || null;
-      if (order.orderType === 'takeaway') order.tableNumber = null;
-      if (order.orderType === 'dine_in' && !order.tableNumber) {
-        throw new BadRequestException(TABLE_REQUIRED);
-      }
-      if (order.orderType === 'dine_in' && !order.waiterId) {
-        throw new BadRequestException(WAITER_REQUIRED);
-      }
       return manager.getRepository(Order).save(order);
     });
   }
@@ -190,7 +182,7 @@ export class OrdersService {
   updateItem(id: number, itemId: number, dto: UpdateItemDto) {
     return this.dataSource.transaction(async (manager) => {
       const order = await this.loadForUpdate(manager, id);
-      this.assertOpen(order);
+      this.assertNotCancelled(order);
       const line = order.items.find((i) => i.id === itemId);
       if (!line) throw new NotFoundException('Ligne introuvable sur cette commande');
 
@@ -225,6 +217,7 @@ export class OrdersService {
         line.lineTotal = round2(line.unitPrice * line.quantity);
       }
       this.recomputeTotals(order);
+      this.settleToTotal(order);
       return manager.getRepository(Order).save(order);
     });
   }
@@ -243,10 +236,19 @@ export class OrdersService {
     });
   }
 
-  private assertOpen(order: Order) {
-    if (order.status !== 'pending') {
-      throw new BadRequestException('Seules les commandes en cours peuvent être modifiées');
-    }
+  private assertNotCancelled(order: Order) {
+    if (order.status === 'cancelled') throw new BadRequestException(CANCELLED);
+  }
+
+  /**
+   * Keeps the amount collected in step with a total that has just moved. The
+   * waiter took the difference, so there is no change left over — otherwise
+   * the day's cash would stop matching the till.
+   */
+  private settleToTotal(order: Order) {
+    if (order.status !== 'paid') return;
+    order.amountPaid = order.total;
+    order.changeGiven = 0;
   }
 
   // Snapshot the employee's name at selection time, like productName on lines
