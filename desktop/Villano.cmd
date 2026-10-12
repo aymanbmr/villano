@@ -4,6 +4,10 @@ setlocal
 :: running (production build, one process on port 3000), then opens the app in
 :: a borderless browser window.
 
+:: --kiosk-printing : le ticket part sur l'imprimante par defaut de Windows
+:: sans ouvrir de fenetre. Ne sert que si aucune imprimante reseau n'est
+:: configuree dans Admin -> Imprimantes ; dans ce cas c'est le serveur qui
+:: imprime et le navigateur n'est pas sollicite.
 set "ROOT=%~dp0.."
 set "URL=http://localhost:3000/#/caisse"
 
@@ -46,13 +50,13 @@ goto wait
 set "EDGE=%ProgramFiles(x86)%\Microsoft\Edge\Application\msedge.exe"
 if not exist "%EDGE%" set "EDGE=%ProgramFiles%\Microsoft\Edge\Application\msedge.exe"
 if exist "%EDGE%" (
-  start "" "%EDGE%" --app=%URL% --window-size=1400,900
+  start "" "%EDGE%" --app=%URL% --window-size=1400,900 --kiosk-printing
   exit /b 0
 )
 set "CHROME=%ProgramFiles%\Google\Chrome\Application\chrome.exe"
 if not exist "%CHROME%" set "CHROME=%LocalAppData%\Google\Chrome\Application\chrome.exe"
 if exist "%CHROME%" (
-  start "" "%CHROME%" --app=%URL% --window-size=1400,900
+  start "" "%CHROME%" --app=%URL% --window-size=1400,900 --kiosk-printing
   exit /b 0
 )
 start "" %URL%

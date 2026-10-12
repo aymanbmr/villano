@@ -156,6 +156,10 @@ export function CaissePage() {
         const where = orderLabel(order);
         setToast(`Commande ${order.ticketNumber} encaissée · ${where}`);
         if (autoPrintKitchen && !serverPrintsKitchen) void print({ kind: 'kitchen', order });
+        // L'encaissement vaut ticket : il sort sans que personne ne le demande.
+        // Avec une imprimante réseau le serveur l'envoie directement, sans
+        // aucune fenêtre ; sinon le navigateur prend le relais.
+        void print({ kind: 'receipt', order });
       }
       cart.clear();
       setAppendTo(null);

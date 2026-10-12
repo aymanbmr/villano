@@ -266,7 +266,16 @@ Trois tickets, formatés pour une imprimante thermique 80 mm :
   automatiquement à l'envoi. Lors d'un ajout d'articles, seul l'ajout est
   imprimé.
 - **Addition** — bouton « Addition » (pré-note, marquée « Non payé »).
-- **Ticket de caisse** — bouton « Imprimer le ticket » après encaissement.
+- **Ticket de caisse** — sort **automatiquement à l'encaissement**, sans que
+  personne ne le demande ; le bouton de réimpression reste disponible dans
+  l'historique des ventes.
+
+Pour que le ticket parte sans qu'aucune fenêtre ne s'ouvre, il faut une
+imprimante réseau configurée : le serveur lui parle directement. À défaut,
+c'est le navigateur qui imprime, et il affiche sa boîte de dialogue — sauf si
+la caisse est lancée par les raccourcis du dossier `desktop/`, qui passent
+`--kiosk-printing` à Chrome pour envoyer directement sur l'imprimante par
+défaut de Windows.
 
 ### Deux imprimantes réseau (comptoir + cuisine)
 
