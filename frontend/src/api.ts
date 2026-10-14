@@ -564,6 +564,10 @@ export interface PrintingConfig {
   kitchen: PrinterConfig;
   autoKitchen: boolean;
   header: { name: string; subtitle: string; address: string; phone: string; footer: string };
+  // Serveur hébergé à distance : les tickets sont mis en attente pour le
+  // relais local plutôt qu'envoyés directement.
+  relayEnabled: boolean;
+  relayToken: string;
 }
 
 export interface PrintResult {
@@ -581,6 +585,7 @@ export const printingApi = {
   test: (printer: PrinterId) =>
     request<PrintResult>(`/printing/test/${printer}`, { method: 'POST' }),
   discover: () => request<FoundPrinter[]>('/printing/discover'),
+  regenerateRelayToken: () => request<string>('/printing/relay/token', { method: 'POST' }),
   // Accessible à la caisse, contrairement au reste de la configuration
   setAutoKitchen: (enabled: boolean) =>
     request<PrintingConfig>('/printing/auto-kitchen', json('PATCH', { enabled })),

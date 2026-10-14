@@ -1,0 +1,10 @@
+{
+  "name": "villano-relay",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Relais d'impression : envoie aux imprimantes locales les tickets qu'un serveur Villano hébergé à distance ne peut pas atteindre lui-même.",
+  "scripts": {
+    "start": "node relay.js"
+  }
+}

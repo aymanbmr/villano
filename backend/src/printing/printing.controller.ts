@@ -1,5 +1,5 @@
-import { Body, Controller, Get, Param, ParseIntPipe, Patch, Post, Put } from '@nestjs/common';
-import { AdminOnly, CaisseOnly } from '../auth/auth.decorators.js';
+import { Body, Controller, Delete, Get, Headers, Param, ParseIntPipe, Patch, Post, Put, Query } from '@nestjs/common';
+import { AdminOnly, CaisseOnly, Public } from '../auth/auth.decorators.js';
 import { OrdersService } from '../orders/orders.service.js';
 import { PrintingService, type PrinterId, type PrintingConfig, type TicketKind } from './printing.service.js';
 
@@ -45,7 +45,37 @@ export class PrintingController {
     return this.printing.testPage(printer === 'kitchen' ? 'kitchen' : 'counter');
   }
 
-  // Any logged-in user: a waiter sending an order prints in the kitchen
+  // A new token invalidates whatever the relay currently holds — used once,
+  // at setup, or if the token ever leaks.
+  @AdminOnly()
+  @Post('relay/token')
+  regenerateRelayToken() {
+    return this.printing.regenerateRelayToken();
+  }
+
+  // -------------------------------------------------------------------------
+  // The relais is a standalone program at the café, not a logged-in user: it
+  // authenticates with the token above instead of a session.
+  // -------------------------------------------------------------------------
+
+  @Public()
+  @Get('relay/jobs')
+  relayJobs(@Headers('x-relay-token') token?: string, @Query('token') queryToken?: string) {
+    return this.printing.relayJobs(token ?? queryToken);
+  }
+
+  @Public()
+  @Delete('relay/jobs/:id')
+  acknowledgeJob(
+    @Param('id', ParseIntPipe) id: number,
+    @Headers('x-relay-token') token?: string,
+    @Query('token') queryToken?: string,
+  ) {
+    return this.printing.acknowledgeJob(token ?? queryToken, id);
+  }
+
+  // Any logged-in user: a waiter sending an order prints in the kitchen.
+  // Declared last: ":kind/:orderId" would otherwise swallow the routes above.
   @Post(':kind/:orderId')
   async print(@Param('kind') kind: TicketKind, @Param('orderId', ParseIntPipe) orderId: number) {
     const order = await this.orders.findOne(orderId);

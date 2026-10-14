@@ -4,9 +4,10 @@ import { Setting } from '../settings/setting.entity.js';
 import { OrdersModule } from '../orders/orders.module.js';
 import { PrintingController } from './printing.controller.js';
 import { PrintingService } from './printing.service.js';
+import { PrintJob } from './print-job.entity.js';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Setting]), forwardRef(() => OrdersModule)],
+  imports: [TypeOrmModule.forFeature([Setting, PrintJob]), forwardRef(() => OrdersModule)],
   controllers: [PrintingController],
   providers: [PrintingService],
   exports: [PrintingService],

@@ -8,6 +8,7 @@ backend/uploads/
 
 # Secrets
 backend/.env
+relay/relay.env
 # Le .env de la racine alimente docker compose : mot de passe admin, cle de
 # session et mot de passe de la base y sont en clair.
 .env

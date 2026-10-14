@@ -3645,6 +3645,17 @@ table.breakdown tfoot td {
   color: var(--muted);
 }
 
+.relay-token-row {
+  display: flex;
+  gap: 8px;
+}
+
+.relay-token-row .input {
+  flex: 1;
+  font-family: monospace;
+  font-size: 12px;
+}
+
 .found-list {
   list-style: none;
   margin: 12px 0 0;

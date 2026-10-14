@@ -95,6 +95,7 @@ export function PrintersAdmin() {
   const [message, setMessage] = useState<string | null>(null);
   const [found, setFound] = useState<FoundPrinter[] | null>(null);
   const [scanning, setScanning] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -126,6 +127,32 @@ export function PrintersAdmin() {
       setError(fail(e));
     } finally {
       setBusy(false);
+    }
+  };
+
+  const regenerateToken = async () => {
+    setBusy(true);
+    setError(null);
+    setMessage(null);
+    try {
+      const token = await printingApi.regenerateRelayToken();
+      setConfig({ ...config, relayToken: token });
+      setMessage('Nouveau jeton généré. Mettez à jour relay.env sur le PC qui fait tourner le relais.');
+    } catch (e) {
+      setError(fail(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const copyToken = async () => {
+    try {
+      await navigator.clipboard.writeText(config.relayToken);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Clipboard indisponible (contexte non sécurisé) : rien de grave, le
+      // jeton reste sélectionnable à la main dans le champ.
     }
   };
 
@@ -205,6 +232,54 @@ export function PrintersAdmin() {
 
       <section className="card">
         <div className="card-head">
+          <h3>Relais local</h3>
+          <label className="checkbox">
+            <input
+              type="checkbox"
+              checked={config.relayEnabled}
+              onChange={(e) => patch({ relayEnabled: e.target.checked })}
+            />
+            Activé
+          </label>
+        </div>
+        <p className="muted printer-hint">
+          À activer quand le serveur Villano est hébergé ailleurs qu'au café (VPS, cloud) : il ne
+          peut alors pas parler directement aux imprimantes du réseau local. Un petit programme
+          (le « relais », dossier <code>relay/</code> du projet) tourne sur une machine du café et
+          fait le lien. Laissez désactivé si le serveur tourne sur place.
+        </p>
+
+        {config.relayEnabled && (
+          <>
+            <div className="field">
+              <span>Jeton du relais</span>
+              <div className="relay-token-row">
+                <input className="input" readOnly value={config.relayToken || '(aucun jeton généré)'} />
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm"
+                  disabled={!config.relayToken}
+                  onClick={copyToken}
+                >
+                  {copied ? <Icon name="check" size={14} /> : <Icon name="clipboard" size={14} />}
+                  {copied ? 'Copié' : 'Copier'}
+                </button>
+                <button type="button" className="btn btn-ghost btn-sm" disabled={busy} onClick={regenerateToken}>
+                  Régénérer
+                </button>
+              </div>
+            </div>
+            <p className="muted printer-hint">
+              Sur la machine du café : copiez <code>relay/relay.env.example</code> en{' '}
+              <code>relay/relay.env</code>, renseignez l'adresse de ce serveur et ce jeton, puis
+              lancez <code>node relay.js</code> (voir <code>relay/README.md</code>).
+            </p>
+          </>
+        )}
+      </section>
+
+      <section className="card">
+        <div className="card-head">
           <h3>Rechercher les imprimantes</h3>
           <button type="button" className="btn btn-ghost" disabled={scanning} onClick={scan}>
             <Icon name="search" size={15} /> {scanning ? 'Recherche…' : 'Lancer la recherche'}
@@ -214,6 +289,13 @@ export function PrintersAdmin() {
           Le serveur parcourt le réseau sur lequel il se trouve et liste tout ce qui répond aux
           imprimantes. Inutile de connaître les adresses : branchez, cherchez, affectez.
         </p>
+        {config.relayEnabled && (
+          <div className="hint">
+            Relais activé : cette recherche parcourt le réseau du serveur, pas celui du café — elle
+            ne trouvera rien. Relevez l'adresse IP de chaque imprimante sur son propre écran
+            (réglages réseau) et saisissez-la directement ci-dessous.
+          </div>
+        )}
 
         {found && found.length > 0 && (
           <ul className="found-list">

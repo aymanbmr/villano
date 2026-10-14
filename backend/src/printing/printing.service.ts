@@ -1,10 +1,12 @@
-import { BadRequestException, Injectable, Logger } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { randomBytes } from 'node:crypto';
 import { Socket } from 'node:net';
 import { Setting } from '../settings/setting.entity.js';
 import { Order } from '../orders/order.entity.js';
 import { EscPos } from './escpos.js';
+import { PrintJob } from './print-job.entity.js';
 import { arpTable, discoverPrinters, findByMac, reachable, type FoundPrinter } from './discovery.js';
 
 export type TicketKind = 'kitchen' | 'bill' | 'receipt';
@@ -30,6 +32,14 @@ export interface PrintingConfig {
   /** Send the kitchen ticket by itself as soon as an order is sent. */
   autoKitchen: boolean;
   header: { name: string; subtitle: string; address: string; phone: string; footer: string };
+  /**
+   * The server cannot reach the café's printers directly (hosted away from
+   * the local network): tickets are queued instead, and a small program
+   * running at the café (the "relais") fetches and sends them.
+   */
+  relayEnabled: boolean;
+  /** Bearer token the relay presents; regenerated whenever the owner asks. */
+  relayToken: string;
 }
 
 const SETTINGS_KEY = 'printing';
@@ -45,6 +55,8 @@ const DEFAULTS: PrintingConfig = {
     phone: 'Tél : 05 00 00 00 00',
     footer: 'Merci de votre visite, à bientôt !',
   },
+  relayEnabled: false,
+  relayToken: '',
 };
 
 const money = (n: number) => `${n.toFixed(2)} DH`;
@@ -64,6 +76,7 @@ export class PrintingService {
 
   constructor(
     @InjectRepository(Setting) private readonly settings: Repository<Setting>,
+    @InjectRepository(PrintJob) private readonly jobs: Repository<PrintJob>,
   ) {}
 
   async getConfig(): Promise<PrintingConfig> {
@@ -116,10 +129,62 @@ export class PrintingService {
     if (!PrintingService.usable(config[id])) {
       return { printed: false, printer: id, reason: 'Imprimante non configurée' };
     }
+
+    if (config.relayEnabled) {
+      const printer = config[id];
+      const payload = this.render(kind, order, config, printer);
+      await this.jobs.save(
+        this.jobs.create({
+          printerId: id,
+          host: printer.host,
+          port: printer.port,
+          payload: payload.toString('base64'),
+        }),
+      );
+      return { printed: true, printer: id };
+    }
+
     const printer = await this.locate(id, config);
     const payload = this.render(kind, order, config, printer);
     await this.send(printer, payload);
     return { printed: true, printer: id };
+  }
+
+  // -------------------------------------------------------------------------
+  // Relais local : le serveur ne peut pas atteindre les imprimantes du café
+  // quand il est hébergé ailleurs. Le relais interroge ces deux routes à sa
+  // place, protégées par un jeton plutôt que par une session utilisateur.
+  // -------------------------------------------------------------------------
+
+  private async assertRelayToken(token: string | undefined) {
+    const config = await this.getConfig();
+    if (!config.relayToken || token !== config.relayToken) {
+      throw new UnauthorizedException('Jeton de relais invalide');
+    }
+  }
+
+  async regenerateRelayToken() {
+    const token = randomBytes(24).toString('hex');
+    await this.setConfig({ relayToken: token });
+    return token;
+  }
+
+  async relayJobs(token: string | undefined, limit = 10) {
+    await this.assertRelayToken(token);
+    const pending = await this.jobs.find({ order: { id: 'ASC' }, take: Math.min(limit, 50) });
+    return pending.map((j) => ({
+      id: j.id,
+      printerId: j.printerId,
+      host: j.host,
+      port: j.port,
+      payload: j.payload,
+    }));
+  }
+
+  async acknowledgeJob(token: string | undefined, id: number) {
+    await this.assertRelayToken(token);
+    await this.jobs.delete({ id });
+    return { acknowledged: true };
   }
 
   /**
@@ -156,7 +221,36 @@ export class PrintingService {
   async testPage(id: PrinterId) {
     const config = await this.getConfig();
     if (!config[id].host) throw new BadRequestException("Renseignez l'adresse de l'imprimante");
+
+    if (config.relayEnabled) {
+      const printer = config[id];
+      const doc = this.testDoc(id, config, printer);
+      await this.jobs.save(
+        this.jobs.create({
+          printerId: id,
+          host: printer.host,
+          port: printer.port,
+          payload: doc.build().toString('base64'),
+        }),
+      );
+      // Le serveur ne peut pas joindre le réseau du café : pas de détection
+      // d'adresse ni de numéro réseau ici, seul le relais le peut.
+      return { printed: true, printer: id, host: printer.host, mac: printer.mac };
+    }
+
     const printer = await this.locate(id, config);
+    const doc = this.testDoc(id, config, printer);
+    await this.send(printer, doc.build());
+    // The test is the moment the printer is confirmed to be the right one, so
+    // that is when its MAC is recorded: from then on it can be found again.
+    const mac = await this.macOf(printer.host);
+    if (mac && mac !== printer.mac) {
+      await this.setConfig({ [id]: { ...printer, mac } } as Partial<PrintingConfig>);
+    }
+    return { printed: true, printer: id, host: printer.host, mac: mac || printer.mac };
+  }
+
+  private testDoc(id: PrinterId, config: PrintingConfig, printer: PrinterConfig) {
     const doc = new EscPos(printer.width);
     doc
       .align('center')
@@ -176,14 +270,7 @@ export class PrintingService {
       .align('center')
       .line(`${printer.host}:${printer.port}`)
       .cut();
-    await this.send(printer, doc.build());
-    // The test is the moment the printer is confirmed to be the right one, so
-    // that is when its MAC is recorded: from then on it can be found again.
-    const mac = await this.macOf(printer.host);
-    if (mac && mac !== printer.mac) {
-      await this.setConfig({ [id]: { ...printer, mac } } as Partial<PrintingConfig>);
-    }
-    return { printed: true, printer: id, host: printer.host, mac: mac || printer.mac };
+    return doc;
   }
 
   private async macOf(host: string) {
