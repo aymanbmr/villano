@@ -2018,6 +2018,13 @@ select.input {
     display: none !important;
   }
 
+  /* Deux tickets dans le meme envoi : le second sur sa propre page, pour que
+     l'imprimante coupe entre les deux. */
+  .ticket-print + .ticket-print {
+    page-break-before: always;
+    break-before: page;
+  }
+
   .ticket-print {
     display: block;
     width: 72mm;

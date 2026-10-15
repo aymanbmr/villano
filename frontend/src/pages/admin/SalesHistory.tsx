@@ -16,7 +16,7 @@ export function SalesHistory() {
   const [open, setOpen] = useState<number | null>(null);
   const [search, setSearch] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const { job, print } = usePrint();
+  const { jobs, print } = usePrint();
 
   const load = useCallback(async () => {
     setError(null);
@@ -178,7 +178,9 @@ export function SalesHistory() {
         </tbody>
       </table>
 
-      {job && <PrintTicket {...job} />}
+      {jobs.map((j, i) => (
+        <PrintTicket key={`${j.kind}-${j.order.id}-${i}`} {...j} />
+      ))}
     </div>
   );
 }

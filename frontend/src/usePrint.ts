@@ -66,7 +66,7 @@ export function usePrint() {
   // le premier avant qu'il n'ait eu le temps de sortir — et le bon de cuisine
   // se perdait sans que rien ne le signale.
   const [queue, setQueue] = useState<PrintJob[]>([]);
-  const job = queue[0] ?? null;
+
   const [handledByServer, setHandledByServer] = useState(false);
   // Lu dans print() par reference, pour ne pas recreer la fonction a chaque
   // changement d'etat.
@@ -110,32 +110,28 @@ export function usePrint() {
     }
   }, []);
 
-  // Ne dépend que du ticket en tête : en ajouter un autre pendant l'impression
-  // ne doit pas relancer celle qui est en cours.
+  // Tous les tickets en attente partent d'un seul envoi, separes par un saut
+  // de page. Les imprimer l'un apres l'autre obligeait a attendre la fin du
+  // precedent, or Chrome en mode kiosque ne signale pas toujours cette fin :
+  // le second ticket sortait alors plusieurs secondes plus tard.
   useEffect(() => {
-    if (!job) return;
+    if (queue.length === 0) return;
     let cancelled = false;
-    const suivant = () => setQueue((q) => q.slice(1));
-    window.addEventListener('afterprint', suivant, { once: true });
-    // Filet : « afterprint » ne se déclenche pas partout, notamment avec
-    // --kiosk-printing selon les versions. Sans cela la file resterait bloquée.
-    const filet = setTimeout(suivant, 4000);
-
-    // Print only once the ticket is in the DOM *and* its images are decoded:
-    // printing too early produces a ticket without the logo.
-    const run = async () => {
+    // Court repit : les deux tickets d'un encaissement sont demandes coup sur
+    // coup, autant les reunir dans la meme impression.
+    const timer = setTimeout(async () => {
       await new Promise((resolve) => requestAnimationFrame(() => resolve(null)));
       await waitForImages();
-      if (!cancelled) window.print();
-    };
-    void run();
+      if (cancelled) return;
+      window.print();
+      setQueue([]);
+    }, 150);
 
     return () => {
       cancelled = true;
-      clearTimeout(filet);
-      window.removeEventListener('afterprint', suivant);
+      clearTimeout(timer);
     };
-  }, [job]);
+  }, [queue]);
 
   // `server: false` for a ticket whose lines differ from the saved order (the
   // kitchen slip of an append): only the browser can render those.
@@ -175,5 +171,5 @@ export function usePrint() {
     return true;
   }, []);
 
-  return { job, print, serverPrintsKitchen: handledByServer, autoKitchen, setAutoKitchen };
+  return { jobs: queue, print, serverPrintsKitchen: handledByServer, autoKitchen, setAutoKitchen };
 }

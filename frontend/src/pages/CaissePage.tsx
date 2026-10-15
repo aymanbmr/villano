@@ -70,7 +70,7 @@ export function CaissePage() {
   // Le réglage vit sur le serveur : la caisse, le téléphone d'un serveur et
   // l'écran d'administration montrent et commandent le même interrupteur.
   const {
-    job: printJob,
+    jobs: printJobs,
     print,
     serverPrintsKitchen,
     autoKitchen: autoPrintKitchen,
@@ -412,7 +412,9 @@ export function CaissePage() {
           />
         )}
       </div>
-      {printJob && <PrintTicket {...printJob} />}
+      {printJobs.map((j, i) => (
+        <PrintTicket key={`${j.kind}-${j.order.id}-${i}`} {...j} />
+      ))}
     </>
   );
 }
