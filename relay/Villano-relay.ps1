@@ -126,6 +126,12 @@ Write-Log 'Laissez cette fenetre ouverte. Ctrl+C pour arreter.'
 $rawDumped = $false
 $waitSeconds = 20
 
+# Imprimantes injoignables, et l'heure a laquelle les reessayer. Sans cela une
+# imprimante eteinte etait relancee a chaque passage, et ses trois secondes
+# d'attente retardaient les tickets destines a l'autre imprimante.
+$enPanne = @{}
+$reposApresEchec = 30
+
 while ($true) {
     try {
         # Le serveur garde la ligne ouverte jusqu'a 20 s s'il n'a rien a
@@ -160,16 +166,24 @@ while ($true) {
             $printerPort = 9100
             if ($rawPort) { $printerPort = [int]$rawPort }
 
+            $cle = $printerHost + ':' + $printerPort
+            if ($enPanne.ContainsKey($cle) -and (Get-Date) -lt $enPanne[$cle]) {
+                continue  # cette imprimante vient d'echouer : on passe a la suite
+            }
+
             try {
                 $bytes = [Convert]::FromBase64String($payload)
                 Send-ToPrinter $printerHost $printerPort $bytes
                 Invoke-Server 'DELETE' ('/api/printing/relay/jobs/' + $id) | Out-Null
-                Write-Log ('Ticket ' + $id + ' imprime sur ' + $printerHost + ':' + $printerPort)
+                Write-Log ('Ticket ' + $id + ' imprime sur ' + $cle)
+                $enPanne.Remove($cle)
                 $printedSomething = $true
             } catch {
-                # L'imprimante est peut-etre juste eteinte : on retente au tour
-                # suivant plutot que de perdre le ticket.
-                Write-Log ('Ticket ' + $id + ' en attente : ' + $_.Exception.Message)
+                # L'imprimante est peut-etre juste eteinte : on la met de cote
+                # un moment, pour ne pas faire attendre l'autre a chaque ticket.
+                $enPanne[$cle] = (Get-Date).AddSeconds($reposApresEchec)
+                Write-Log ('Ticket ' + $id + ' en attente, ' + $cle + ' injoignable.' +
+                    ' Nouvel essai dans ' + $reposApresEchec + ' s.')
             }
         }
     } catch {

@@ -121,3 +121,20 @@ Un ticket que personne n'a su livrer en dix minutes est abandonné. Sans cela,
 une imprimante éteinte bloquerait toute la file derrière elle, et les tickets
 oubliés finiraient par sortir en pleine heure de pointe, sans rapport avec ce
 qui se passe au comptoir.
+
+## Quand une imprimante est en panne
+
+Le relais la signale une fois, puis la met de côté trente secondes avant de
+réessayer :
+
+```
+Ticket 42 en attente, 192.168.1.95:9100 injoignable. Nouvel essai dans 30 s.
+```
+
+Sans cela, chaque passage perdait trois secondes à insister sur l'imprimante
+morte avant de s'occuper des tickets destinés à l'autre — qui sortaient donc
+avec plusieurs secondes de retard, sans raison apparente.
+
+Si ce message revient en boucle, c'est l'imprimante qu'il faut regarder, pas le
+relais : vérifiez qu'elle est allumée et que son câble réseau est branché sur la
+box, puis depuis la caisse `ping 192.168.1.95`.

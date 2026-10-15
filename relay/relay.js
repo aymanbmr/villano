@@ -91,6 +91,11 @@ async function acknowledge(id) {
   if (!res.ok) throw new Error(`Confirmation refusée (${res.status})`);
 }
 
+// Imprimantes injoignables, et l'heure a laquelle les reessayer : une
+// imprimante eteinte ne doit pas faire attendre les tickets de l'autre.
+const enPanne = new Map();
+const REPOS_APRES_ECHEC = 30_000;
+
 async function tick() {
   let printed = false;
   let jobs;
@@ -102,16 +107,20 @@ async function tick() {
   }
 
   for (const job of jobs) {
+    const cle = `${job.host}:${job.port}`;
+    if ((enPanne.get(cle) ?? 0) > Date.now()) continue;
     try {
       const buffer = Buffer.from(job.payload, 'base64');
       await sendToPrinter(job.host, job.port, buffer);
       await acknowledge(job.id);
-      log(`Ticket #${job.id} imprimé (${job.printerId} · ${job.host}:${job.port})`);
+      log(`Ticket #${job.id} imprimé (${job.printerId} · ${cle})`);
+      enPanne.delete(cle);
       printed = true;
     } catch (e) {
       // L'imprimante est peut-être juste éteinte : on retente au prochain
       // passage plutôt que de perdre le ticket.
-      log(`Ticket #${job.id} en attente : ${e.message}`);
+      enPanne.set(cle, Date.now() + REPOS_APRES_ECHEC);
+      log(`Ticket #${job.id} en attente, ${cle} injoignable. Nouvel essai dans 30 s.`);
     }
   }
   return printed;
