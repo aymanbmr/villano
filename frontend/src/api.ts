@@ -585,7 +585,8 @@ export const printingApi = {
   test: (printer: PrinterId) =>
     request<PrintResult>(`/printing/test/${printer}`, { method: 'POST' }),
   discover: () => request<FoundPrinter[]>('/printing/discover'),
-  regenerateRelayToken: () => request<string>('/printing/relay/token', { method: 'POST' }),
+  regenerateRelayToken: async (): Promise<string> =>
+    (await request<{ relayToken: string }>('/printing/relay/token', { method: 'POST' })).relayToken,
   // Accessible à la caisse, contrairement au reste de la configuration
   setAutoKitchen: (enabled: boolean) =>
     request<PrintingConfig>('/printing/auto-kitchen', json('PATCH', { enabled })),

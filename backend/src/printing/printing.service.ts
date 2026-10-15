@@ -166,7 +166,9 @@ export class PrintingService {
   async regenerateRelayToken() {
     const token = randomBytes(24).toString('hex');
     await this.setConfig({ relayToken: token });
-    return token;
+    // Enveloppé dans un objet : renvoyé nu, le jeton n'est pas du JSON valide
+    // et le client échouait à le lire.
+    return { relayToken: token };
   }
 
   async relayJobs(token: string | undefined, limit = 10) {
