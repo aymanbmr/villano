@@ -61,10 +61,12 @@ function Write-Log($message) {
 
 # Invoke-RestMethod n'existe qu'a partir de PowerShell 3 : on passe par .NET,
 # disponible sur toutes les versions de Windows 7.
-function Invoke-Server($method, $path) {
+function Invoke-Server($method, $path, $timeoutMs) {
+    if (-not $timeoutMs) { $timeoutMs = 15000 }
     $request = [System.Net.HttpWebRequest]::Create($serverUrl + $path)
     $request.Method = $method
-    $request.Timeout = 15000
+    $request.Timeout = $timeoutMs
+    $request.ReadWriteTimeout = $timeoutMs
     $request.Headers.Add('X-Relay-Token', $relayToken)
     $request.UserAgent = 'Villano-Relay-PowerShell'
 
@@ -98,11 +100,11 @@ function Get-Field($job, $name) {
 # il se trouve sur le meme reseau que l'imprimante.
 function Send-ToPrinter($printerHost, $printerPort, $bytes) {
     $client = New-Object System.Net.Sockets.TcpClient
-    $client.SendTimeout = 8000
-    $client.ReceiveTimeout = 8000
+    $client.SendTimeout = 3000
+    $client.ReceiveTimeout = 3000
     try {
         $connect = $client.BeginConnect($printerHost, $printerPort, $null, $null)
-        if (-not $connect.AsyncWaitHandle.WaitOne(8000, $false)) {
+        if (-not $connect.AsyncWaitHandle.WaitOne(3000, $false)) {
             throw ($printerHost + ':' + $printerPort + ' ne repond pas')
         }
         $client.EndConnect($connect)
@@ -122,10 +124,14 @@ Write-Log ('Relais demarre -- serveur ' + $serverUrl + ', verification toutes le
 Write-Log 'Laissez cette fenetre ouverte. Ctrl+C pour arreter.'
 
 $rawDumped = $false
+$waitSeconds = 20
 
 while ($true) {
     try {
-        $raw = Invoke-Server 'GET' '/api/printing/relay/jobs'
+        # Le serveur garde la ligne ouverte jusqu'a 20 s s'il n'a rien a
+        # imprimer : le ticket part des qu'il est pret, au lieu d'attendre le
+        # prochain passage. La requete dure donc normalement longtemps.
+        $raw = Invoke-Server 'GET' ('/api/printing/relay/jobs?wait=' + $waitSeconds) (($waitSeconds + 15) * 1000)
         $jobs = ConvertFrom-JsonCompat $raw
 
         foreach ($job in $jobs) {
@@ -169,5 +175,7 @@ while ($true) {
         Write-Log ('Serveur injoignable : ' + $_.Exception.Message)
     }
 
-    Start-Sleep -Milliseconds $pollMs
+    # L'attente se fait cote serveur ; cette pause n'est qu'un garde-fou si la
+    # reponse revient immediatement, pour ne pas tourner en boucle serree.
+    Start-Sleep -Milliseconds ([Math]::Min($pollMs, 1000))
 }

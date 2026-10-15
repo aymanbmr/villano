@@ -70,9 +70,14 @@ function sendToPrinter(host, port, buffer, timeoutMs = 6000) {
   });
 }
 
+// Le serveur garde la ligne ouverte s'il n'a rien a imprimer : le ticket part
+// des qu'il est pret plutot qu'au prochain passage.
+const WAIT_SECONDS = 20;
+
 async function fetchJobs() {
-  const res = await fetch(`${SERVER_URL}/api/printing/relay/jobs`, {
+  const res = await fetch(`${SERVER_URL}/api/printing/relay/jobs?wait=${WAIT_SECONDS}`, {
     headers: { 'X-Relay-Token': RELAY_TOKEN },
+    signal: AbortSignal.timeout((WAIT_SECONDS + 15) * 1000),
   });
   if (!res.ok) throw new Error(`Le serveur a répondu ${res.status}`);
   return res.json();

@@ -106,3 +106,18 @@ cd backend && DB_SYNC=true timeout 40 node dist/main.js
 ```
 
 Ajouter une table ne touche à aucune donnée existante.
+
+## Rapidité
+
+Le relais ne repasse plus toutes les trois secondes : il garde sa requête
+ouverte, et le serveur la débloque dès qu'un ticket entre dans la file. Un
+ticket part donc dans les instants qui suivent l'encaissement — mesuré à moins
+de 300 ms de bout en bout, encaissement compris.
+
+`POLL_INTERVAL_MS` ne sert plus que de garde-fou entre deux requêtes ; il est
+inutile de le descendre.
+
+Un ticket que personne n'a su livrer en dix minutes est abandonné. Sans cela,
+une imprimante éteinte bloquerait toute la file derrière elle, et les tickets
+oubliés finiraient par sortir en pleine heure de pointe, sans rapport avec ce
+qui se passe au comptoir.

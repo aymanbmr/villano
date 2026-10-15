@@ -79,6 +79,33 @@ export class PrintingService {
     @InjectRepository(PrintJob) private readonly jobs: Repository<PrintJob>,
   ) {}
 
+  /**
+   * Relais suspendus a l'arrivee d'un ticket. Les interroger toutes les trois
+   * secondes faisait attendre le papier d'autant ; ils gardent desormais leur
+   * requete ouverte et sont reveilles des qu'un ticket entre dans la file.
+   */
+  private jobWaiters: (() => void)[] = [];
+
+  private wakeRelays() {
+    const waiting = this.jobWaiters;
+    this.jobWaiters = [];
+    for (const wake of waiting) wake();
+  }
+
+  private waitForJob(seconds: number) {
+    return new Promise<void>((resolve) => {
+      const timer = setTimeout(() => {
+        this.jobWaiters = this.jobWaiters.filter((w) => w !== wake);
+        resolve();
+      }, seconds * 1000);
+      const wake = () => {
+        clearTimeout(timer);
+        resolve();
+      };
+      this.jobWaiters.push(wake);
+    });
+  }
+
   async getConfig(): Promise<PrintingConfig> {
     const row = await this.settings.findOneBy({ key: SETTINGS_KEY });
     if (!row) return DEFAULTS;
@@ -141,6 +168,7 @@ export class PrintingService {
           payload: payload.toString('base64'),
         }),
       );
+      this.wakeRelays();
       return { printed: true, printer: id };
     }
 
@@ -171,9 +199,32 @@ export class PrintingService {
     return { relayToken: token };
   }
 
-  async relayJobs(token: string | undefined, limit = 10) {
+  /**
+   * Un ticket qu'on n'a pas su livrer en dix minutes ne vaut plus rien : le
+   * client est parti. Le garder bloquerait la file derriere lui — chaque
+   * tentative coutant son delai de connexion — et il finirait par sortir en
+   * pleine heure de pointe, sans rapport avec ce qui se passe au comptoir.
+   */
+  private async dropStaleJobs() {
+    const cutoff = new Date(Date.now() - 10 * 60_000);
+    await this.jobs
+      .createQueryBuilder()
+      .delete()
+      .where('createdAt < :cutoff', { cutoff })
+      .execute();
+  }
+
+  async relayJobs(token: string | undefined, limit = 10, waitSeconds = 0) {
     await this.assertRelayToken(token);
-    const pending = await this.jobs.find({ order: { id: 'ASC' }, take: Math.min(limit, 50) });
+    await this.dropStaleJobs();
+    const take = Math.min(limit, 50);
+    let pending = await this.jobs.find({ order: { id: 'ASC' }, take });
+    // Rien a imprimer : plutot que de renvoyer une liste vide et laisser le
+    // relais revenir dans trois secondes, on garde la ligne ouverte.
+    if (pending.length === 0 && waitSeconds > 0) {
+      await this.waitForJob(Math.min(waitSeconds, 30));
+      pending = await this.jobs.find({ order: { id: 'ASC' }, take });
+    }
     return pending.map((j) => ({
       id: j.id,
       printerId: j.printerId,

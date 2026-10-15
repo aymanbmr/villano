@@ -60,8 +60,15 @@ export class PrintingController {
 
   @Public()
   @Get('relay/jobs')
-  relayJobs(@Headers('x-relay-token') token?: string, @Query('token') queryToken?: string) {
-    return this.printing.relayJobs(token ?? queryToken);
+  relayJobs(
+    @Headers('x-relay-token') token?: string,
+    @Query('token') queryToken?: string,
+    // Secondes pendant lesquelles le serveur garde la ligne ouverte si la file
+    // est vide : le ticket part alors des qu'il est pret, sans attendre le
+    // prochain passage du relais.
+    @Query('wait') wait?: string,
+  ) {
+    return this.printing.relayJobs(token ?? queryToken, 10, Number(wait) || 0);
   }
 
   @Public()
