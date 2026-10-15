@@ -277,6 +277,12 @@ Trois tickets, formatés pour une imprimante thermique 80 mm :
   personne ne le demande ; le bouton de réimpression reste disponible dans
   l'historique des ventes.
 
+Un ticket parti **tout seul** n'ouvre jamais la boîte d'impression du
+navigateur : celle-ci est modale et figerait la caisse à chaque vente. Quand le
+serveur ne peut pas imprimer, l'application le dit — « ticket non imprimé » —
+et laisse la caisse utilisable. La boîte ne s'ouvre que sur un clic explicite,
+où l'attente est voulue.
+
 Pour que le ticket parte sans qu'aucune fenêtre ne s'ouvre, il faut une
 imprimante réseau configurée : le serveur lui parle directement. À défaut,
 c'est le navigateur qui imprime, et il affiche sa boîte de dialogue — sauf si

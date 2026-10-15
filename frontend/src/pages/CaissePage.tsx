@@ -148,11 +148,14 @@ export function CaissePage() {
         order = await api.createOrder(payload);
         const where = orderLabel(order);
         setToast(`Commande ${order.ticketNumber} encaissée · ${where}`);
-        if (autoPrintKitchen && !serverPrintsKitchen) void print({ kind: 'kitchen', order });
+        if (autoPrintKitchen && !serverPrintsKitchen)
+          void print({ kind: 'kitchen', order }, { auto: true });
         // L'encaissement vaut ticket : il sort sans que personne ne le demande.
-        // Avec une imprimante réseau le serveur l'envoie directement, sans
-        // aucune fenêtre ; sinon le navigateur prend le relais.
-        void print({ kind: 'receipt', order });
+        // Si le serveur n'a pas d'imprimante, on le dit plutôt que d'ouvrir la
+        // boîte du navigateur, qui figerait la caisse à chaque vente.
+        void print({ kind: 'receipt', order }, { auto: true }).then((done) => {
+          if (!done) setToast(`Commande ${order.ticketNumber} encaissée · ticket non imprimé`);
+        });
       }
       cart.clear();
       setAppendTo(null);

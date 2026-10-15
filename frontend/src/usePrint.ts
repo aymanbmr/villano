@@ -95,7 +95,14 @@ export function usePrint() {
 
   // `server: false` for a ticket whose lines differ from the saved order (the
   // kitchen slip of an append): only the browser can render those.
-  const print = useCallback(async (next: PrintJob, { server = true } = {}) => {
+  /**
+   * `auto` distingue le ticket qui part de lui-meme a l'encaissement du ticket
+   * demande d'un clic. La boite d'impression du navigateur est modale : elle
+   * fige la caisse tant qu'on ne l'a pas fermee, ce qui est tenable quand on
+   * l'a demandee, et ruineux a chaque vente. Un ticket automatique que le
+   * serveur n'a pas pu imprimer est donc signale, pas affiche.
+   */
+  const print = useCallback(async (next: PrintJob, { server = true, auto = false } = {}) => {
     if (server && next.order.id > 0 && navigator.onLine) {
       try {
         // Un serveur hébergé ne peut pas joindre une imprimante du café : il
@@ -106,12 +113,14 @@ export function usePrint() {
           printingApi.print(next.kind, next.order.id),
           new Promise<null>((resolve) => setTimeout(() => resolve(null), SERVER_PRINT_TIMEOUT)),
         ]);
-        if (result?.printed) return;
+        if (result?.printed) return true;
       } catch {
         // Imprimante injoignable ou serveur muet : le navigateur prend la main
       }
     }
+    if (auto) return false;
     setJob(next);
+    return true;
   }, []);
 
   return { job, print, serverPrintsKitchen: handledByServer, autoKitchen, setAutoKitchen };
