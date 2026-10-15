@@ -160,12 +160,12 @@ export function CaissePage() {
       cart.clear();
       setAppendTo(null);
       setSelectedOrderId(order.id);
-      await load();
+      void refreshOrders(); // en arriere-plan : la commande est deja enregistree
     } catch (e) {
       const message = errorMessage(e);
       setCartError(message);
       if (/journée/i.test(message)) setDayPromptHidden(false);
-      await load(); // stock may have changed under us
+      await load(); // l'echec peut venir du stock ou de la journee : on relit tout
     } finally {
       setBusy(false);
     }
@@ -178,7 +178,7 @@ export function CaissePage() {
       const paid = await api.payOrder(order.id, payload);
       setPaidOrder(paid);
       setSelectedOrderId(null);
-      await load();
+      void refreshOrders();
     } catch (e) {
       setPayError(errorMessage(e));
       await load();
@@ -187,6 +187,24 @@ export function CaissePage() {
     }
   };
 
+  /**
+   * Apres une action, seules les commandes et la journee ont pu changer : le
+   * menu, les categories et les employes ne bougent pas en encaissant. Recharger
+   * les cinq faisait attendre la caisse pour rien — sensible des que le serveur
+   * est loin. Le rafraichissement complet reste celui du demarrage et du
+   * rythme de fond.
+   */
+  const refreshOrders = useCallback(async () => {
+    try {
+      const [orders, day] = await Promise.all([api.recentOrders(), workDayApi.current()]);
+      setPendingOrders(orders);
+      setWorkDay(day);
+    } catch {
+      // Un rafraichissement rate n'a pas a interrompre la caisse : le suivant
+      // corrigera, et la commande est deja partie.
+    }
+  }, []);
+
   // Generic wrapper for edits on an open order: run, refresh, surface errors
   const editOrder = async (action: () => Promise<unknown>, successToast?: string) => {
     setBusy(true);
@@ -194,7 +212,7 @@ export function CaissePage() {
     try {
       await action();
       if (successToast) setToast(successToast);
-      await load();
+      void refreshOrders();
     } catch (e) {
       setPayError(errorMessage(e));
       await load();
