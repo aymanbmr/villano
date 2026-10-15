@@ -38,10 +38,20 @@ export class WorkDaysService {
     if (!day) throw new NotFoundException('Journée introuvable');
     if (day.closedAt) throw new BadRequestException('Cette journée est déjà clôturée');
 
-    // Orders are settled when taken, so nothing can be left hanging. Older
-    // databases may still hold unsettled ones, and closing over them would
-    // leave sales outside any day.
-    const pending = await this.orders.count({ where: { status: 'pending' } });
+    // Une commande est encaissée dès sa prise : plus rien ne devrait rester en
+    // suspens. Les bases d'avant ce changement en gardent, et clôturer
+    // par-dessus laisserait des ventes hors de toute journée — mais seules
+    // celles de la journée en cours doivent la retenir. Sans cette condition,
+    // une commande oubliée il y a des semaines bloquait la clôture pour
+    // toujours, sans qu'on puisse la trouver nulle part.
+    // La comparaison se fait en JavaScript, pas en base : SQLite enregistre ces
+    // dates à la seconde tandis que le pilote interroge à la milliseconde, et
+    // une commande prise dans la même seconde que l'ouverture passait au
+    // travers. Les commandes en suspens se comptent sur les doigts d'une main,
+    // normalement aucune : les lire toutes ne coûte rien.
+    const opened = new Date(day.openedAt).getTime();
+    const unsettled = await this.orders.find({ where: { status: 'pending' } });
+    const pending = unsettled.filter((o) => new Date(o.createdAt).getTime() >= opened).length;
     if (pending > 0) {
       throw new BadRequestException(
         `Impossible de clôturer : ${pending} commande${pending > 1 ? 's' : ''} encore en cours. Encaissez-les ou annulez-les d'abord.`,
