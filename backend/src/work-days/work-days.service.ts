@@ -51,10 +51,16 @@ export class WorkDaysService {
     // normalement aucune : les lire toutes ne coûte rien.
     const opened = new Date(day.openedAt).getTime();
     const unsettled = await this.orders.find({ where: { status: 'pending' } });
-    const pending = unsettled.filter((o) => new Date(o.createdAt).getTime() >= opened).length;
-    if (pending > 0) {
+    const blocking = unsettled.filter((o) => new Date(o.createdAt).getTime() >= opened);
+    if (blocking.length > 0) {
+      // Les nommer : une commande d'un jour passé n'apparaît nulle part dans la
+      // caisse, qui ne montre que celles du jour. Sans son numéro, elle est
+      // introuvable et la journée reste bloquée sans qu'on sache pourquoi.
+      const numeros = blocking.map((o) => o.ticketNumber).join(', ');
+      const pluriel = blocking.length > 1;
       throw new BadRequestException(
-        `Impossible de clôturer : ${pending} commande${pending > 1 ? 's' : ''} encore en cours. Encaissez-les ou annulez-les d'abord.`,
+        `Impossible de clôturer : ${blocking.length} commande${pluriel ? 's' : ''} encore en cours ` +
+          `(${numeros}). Encaissez-${pluriel ? 'les' : 'la'} ou annulez-${pluriel ? 'les' : 'la'} d'abord.`,
       );
     }
 
