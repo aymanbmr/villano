@@ -26,6 +26,18 @@ export function refreshPrintingConfig() {
 const SERVER_PRINT_TIMEOUT = 2500;
 
 /** True when the server sends kitchen tickets to a network printer by itself. */
+/**
+ * Le serveur a-t-il seulement une imprimante a qui parler ? Si non, inutile de
+ * lui demander d'imprimer : il repondrait non apres un aller-retour complet,
+ * et le navigateur prendrait le relais de toute facon. Sur un serveur
+ * lointain, cela retardait chaque ticket d'un quart de seconde pour rien.
+ */
+function serveurPeutImprimer(config: PrintingConfig | null) {
+  if (!config) return false;
+  const branchee = (p: { enabled: boolean; host: string }) => p.enabled && !!p.host;
+  return branchee(config.counter) || branchee(config.kitchen);
+}
+
 function serverPrintsKitchen(config: PrintingConfig | null) {
   return !!config && config.autoKitchen && config.kitchen.enabled && !!config.kitchen.host;
 }
@@ -56,6 +68,9 @@ export function usePrint() {
   const [queue, setQueue] = useState<PrintJob[]>([]);
   const job = queue[0] ?? null;
   const [handledByServer, setHandledByServer] = useState(false);
+  // Lu dans print() par reference, pour ne pas recreer la fonction a chaque
+  // changement d'etat.
+  const serveurImprimeRef = useRef(false);
   const [browserFallback, setBrowserFallback] = useState(false);
   // Whether a kitchen slip should go out at all. The switch lives on the
   // server rather than in each browser, so the caisse, a waiter's phone and
@@ -67,6 +82,7 @@ export function usePrint() {
     void loadPrintingConfig().then((config) => {
       if (!alive) return;
       setHandledByServer(serverPrintsKitchen(config));
+      serveurImprimeRef.current = serveurPeutImprimer(config);
       if (config) {
         setAutoKitchenState(config.autoKitchen);
         setBrowserFallback(config.browserFallback === true);
@@ -88,6 +104,7 @@ export function usePrint() {
       const saved = await printingApi.setAutoKitchen(value);
       refreshPrintingConfig();
       setHandledByServer(serverPrintsKitchen(saved));
+      serveurImprimeRef.current = serveurPeutImprimer(saved);
     } catch {
       setAutoKitchenState(!value); // le serveur n'a pas suivi : on revient
     }
@@ -130,7 +147,7 @@ export function usePrint() {
    * serveur n'a pas pu imprimer est donc signale, pas affiche.
    */
   const print = useCallback(async (next: PrintJob, { server = true, auto = false } = {}) => {
-    if (server && next.order.id > 0 && navigator.onLine) {
+    if (server && serveurImprimeRef.current && next.order.id > 0 && navigator.onLine) {
       try {
         // Un serveur hébergé ne peut pas joindre une imprimante du café : il
         // sonderait l'adresse, balaierait son réseau puis expirerait, soit une
