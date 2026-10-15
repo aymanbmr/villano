@@ -157,7 +157,13 @@ export function CaissePage() {
         order = await api.createOrder(payload);
         const where = orderLabel(order);
         setToast(`Commande ${order.ticketNumber} encaissée · ${where}`);
-        if (autoPrintKitchen && !serverPrintsKitchen)
+        // Le serveur imprime lui-meme le bon de cuisine quand il a une
+        // imprimante — sauf pour une commande prise hors ligne, qu'il n'a pas
+        // encore vue. Dans ce cas la caisse s'en charge, sans quoi le bon ne
+        // sortirait pas du tout. Un identifiant negatif signale cette commande
+        // restee locale.
+        const priseHorsLigne = order.id < 0;
+        if (autoPrintKitchen && (priseHorsLigne || !serverPrintsKitchen))
           void print({ kind: 'kitchen', order }, { auto: true });
         // L'encaissement vaut ticket : il sort sans que personne ne le demande.
         // Si le serveur n'a pas d'imprimante, on le dit plutôt que d'ouvrir la
