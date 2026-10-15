@@ -9,6 +9,7 @@ setlocal
 :: configuree dans Admin -> Imprimantes ; dans ce cas c'est le serveur qui
 :: imprime et le navigateur n'est pas sollicite.
 set "ROOT=%~dp0.."
+set "PROFIL=%LocalAppData%\Villano-caisse"
 set "URL=http://localhost:3000/#/caisse"
 
 :: Is the server already up?
@@ -50,13 +51,13 @@ goto wait
 set "EDGE=%ProgramFiles(x86)%\Microsoft\Edge\Application\msedge.exe"
 if not exist "%EDGE%" set "EDGE=%ProgramFiles%\Microsoft\Edge\Application\msedge.exe"
 if exist "%EDGE%" (
-  start "" "%EDGE%" --app=%URL% --window-size=1400,900 --kiosk-printing
+  start "" "%EDGE%" --app=%URL% --window-size=1400,900 --kiosk-printing --user-data-dir="%PROFIL%"
   exit /b 0
 )
 set "CHROME=%ProgramFiles%\Google\Chrome\Application\chrome.exe"
 if not exist "%CHROME%" set "CHROME=%LocalAppData%\Google\Chrome\Application\chrome.exe"
 if exist "%CHROME%" (
-  start "" "%CHROME%" --app=%URL% --window-size=1400,900 --kiosk-printing
+  start "" "%CHROME%" --app=%URL% --window-size=1400,900 --kiosk-printing --user-data-dir="%PROFIL%"
   exit /b 0
 )
 start "" %URL%
