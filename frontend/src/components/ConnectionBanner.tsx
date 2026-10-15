@@ -42,12 +42,16 @@ export function ConnectionBanner({ onSynced }: Props) {
   return (
     <div className={`conn-banner${online ? ' is-sync' : ' is-off'}`}>
       <Icon name={online ? 'cart' : 'alert'} size={16} />
+      {/* « en attente » parlait de l'envoi, mais se lisait comme une vente
+          inachevee : la caisse semblait ne pas avoir encaisse. Le compte porte
+          donc sur ce qu'il reste a copier vers le serveur, jamais sur la vente,
+          qui est terminee des l'encaissement. */}
       <span>
         {online
           ? syncing
-            ? `Envoi en cours… ${pending} en attente`
-            : `${pending} commande(s) en attente d'envoi`
-          : `Hors ligne — les commandes sont enregistrées ici${pending ? ` (${pending} en attente)` : ''}`}
+            ? `Envoi au serveur… ${pending} restante(s)`
+            : `${pending} vente(s) encaissée(s) à envoyer au serveur`
+          : `Hors ligne — les ventes sont encaissées et gardées sur ce poste${pending ? ` (${pending} à envoyer)` : ''}`}
       </span>
       {lastError && <span className="conn-error">{lastError}</span>}
       {online && !syncing && (
