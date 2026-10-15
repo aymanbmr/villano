@@ -117,6 +117,10 @@ export function usePrint() {
   useEffect(() => {
     if (queue.length === 0) return;
     let cancelled = false;
+    let retrait: ReturnType<typeof setTimeout> | undefined;
+    // Combien de tickets cet envoi couvre : ceux-la seuls seront retires, un
+    // encaissement suivant ne doit pas disparaitre avec eux.
+    const envoyes = queue.length;
     // Court repit : les deux tickets d'un encaissement sont demandes coup sur
     // coup, autant les reunir dans la meme impression.
     const timer = setTimeout(async () => {
@@ -124,12 +128,18 @@ export function usePrint() {
       await waitForImages();
       if (cancelled) return;
       window.print();
-      setQueue([]);
+      // En mode kiosque, window.print() rend la main sans que la page soit
+      // forcement deja rendue pour l'imprimante. Retirer le ticket du DOM dans
+      // la foulee pouvait donc n'envoyer qu'une page blanche. On le laisse en
+      // place le temps que l'impression soit constituee ; il reste invisible a
+      // l'ecran de toute facon.
+      retrait = setTimeout(() => setQueue((q) => q.slice(envoyes)), 2000);
     }, 150);
 
     return () => {
       cancelled = true;
       clearTimeout(timer);
+      clearTimeout(retrait);
     };
   }, [queue]);
 
