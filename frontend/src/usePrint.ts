@@ -7,7 +7,14 @@ import type { PrintJob } from './components/PrintTicket';
 let configPromise: Promise<PrintingConfig | null> | null = null;
 
 function loadPrintingConfig() {
-  if (!configPromise) configPromise = printingApi.config().catch(() => null);
+  if (!configPromise) {
+    configPromise = printingApi.config().catch(() => {
+      // Un échec ne doit pas être retenu : la prochaine impression réessaiera,
+      // sans quoi une seule tentative ratée condamnerait toute la session.
+      configPromise = null;
+      return null;
+    });
+  }
   return configPromise;
 }
 

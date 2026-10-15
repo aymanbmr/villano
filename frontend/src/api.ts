@@ -604,7 +604,10 @@ export interface PrintResult {
 }
 
 export const printingApi = {
-  config: () => request<PrintingConfig>('/printing/config'),
+  // Mise en cache comme le reste : sans elle, une caisse rechargée pendant une
+  // coupure ignorerait qu'elle a le droit d'imprimer par le navigateur, et
+  // aucun ticket ne sortirait — justement quand on en a le plus besoin.
+  config: () => cached('printingConfig', () => request<PrintingConfig>('/printing/config')),
   save: (patch: Partial<PrintingConfig>) =>
     request<PrintingConfig>('/printing/config', json('PUT', patch)),
   test: (printer: PrinterId) =>
