@@ -42,7 +42,12 @@ async function waitForImages() {
 // the page and the browser print dialog opens, then it is cleared. Only the
 // ticket is visible under @media print (index.css).
 export function usePrint() {
-  const [job, setJob] = useState<PrintJob | null>(null);
+  // Une file, et non un seul ticket : un encaissement en produit deux, le bon
+  // de cuisine puis celui du client. Avec une seule place, le second effaçait
+  // le premier avant qu'il n'ait eu le temps de sortir — et le bon de cuisine
+  // se perdait sans que rien ne le signale.
+  const [queue, setQueue] = useState<PrintJob[]>([]);
+  const job = queue[0] ?? null;
   const [handledByServer, setHandledByServer] = useState(false);
   const [browserFallback, setBrowserFallback] = useState(false);
   // Whether a kitchen slip should go out at all. The switch lives on the
@@ -81,11 +86,16 @@ export function usePrint() {
     }
   }, []);
 
+  // Ne dépend que du ticket en tête : en ajouter un autre pendant l'impression
+  // ne doit pas relancer celle qui est en cours.
   useEffect(() => {
     if (!job) return;
     let cancelled = false;
-    const done = () => setJob(null);
-    window.addEventListener('afterprint', done);
+    const suivant = () => setQueue((q) => q.slice(1));
+    window.addEventListener('afterprint', suivant, { once: true });
+    // Filet : « afterprint » ne se déclenche pas partout, notamment avec
+    // --kiosk-printing selon les versions. Sans cela la file resterait bloquée.
+    const filet = setTimeout(suivant, 4000);
 
     // Print only once the ticket is in the DOM *and* its images are decoded:
     // printing too early produces a ticket without the logo.
@@ -98,7 +108,8 @@ export function usePrint() {
 
     return () => {
       cancelled = true;
-      window.removeEventListener('afterprint', done);
+      clearTimeout(filet);
+      window.removeEventListener('afterprint', suivant);
     };
   }, [job]);
 
@@ -133,10 +144,10 @@ export function usePrint() {
     // Le ticket du navigateur reprend le Wi-Fi des reglages du serveur, pour
     // ne pas dire autre chose que celui de l'imprimante reseau.
     const config = await loadPrintingConfig();
-    setJob({
-      ...next,
-      wifi: { name: config?.header.wifiName, password: config?.header.wifiPassword },
-    });
+    setQueue((q) => [
+      ...q,
+      { ...next, wifi: { name: config?.header.wifiName, password: config?.header.wifiPassword } },
+    ]);
     return true;
   }, []);
 
