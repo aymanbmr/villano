@@ -11,7 +11,7 @@ cd /d "%ROOT%"
 where node >nul 2>&1
 if errorlevel 1 goto powershell
 
-:: Node present : encore faut-il qu'il soit assez recent pour « fetch »
+:: Node present : encore faut-il qu'il soit assez recent pour "fetch"
 for /f "tokens=1 delims=." %%v in ('node --version') do set "NODEMAJOR=%%v"
 set "NODEMAJOR=%NODEMAJOR:v=%"
 if %NODEMAJOR% GEQ 18 (
