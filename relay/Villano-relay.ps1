@@ -165,6 +165,7 @@ while ($true) {
                 Send-ToPrinter $printerHost $printerPort $bytes
                 Invoke-Server 'DELETE' ('/api/printing/relay/jobs/' + $id) | Out-Null
                 Write-Log ('Ticket ' + $id + ' imprime sur ' + $printerHost + ':' + $printerPort)
+                $printedSomething = $true
             } catch {
                 # L'imprimante est peut-etre juste eteinte : on retente au tour
                 # suivant plutot que de perdre le ticket.
@@ -175,7 +176,9 @@ while ($true) {
         Write-Log ('Serveur injoignable : ' + $_.Exception.Message)
     }
 
-    # L'attente se fait cote serveur ; cette pause n'est qu'un garde-fou si la
-    # reponse revient immediatement, pour ne pas tourner en boucle serree.
+    # Rien a temporiser quand des tickets viennent d'arriver : d'autres
+    # attendent peut-etre derriere. La pause ne sert que si la file etait vide,
+    # pour ne pas tourner en boucle serree si le serveur repond aussitot.
+    if ($printedSomething) { continue }
     Start-Sleep -Milliseconds ([Math]::Min($pollMs, 1000))
 }

@@ -38,6 +38,13 @@ export interface PrintingConfig {
    * running at the café (the "relais") fetches and sends them.
    */
   relayEnabled: boolean;
+  /**
+   * Laisse le navigateur de la caisse imprimer quand le serveur ne le peut
+   * pas. A n'activer que si la caisse est lancee par le raccourci Villano,
+   * qui passe --kiosk-printing a Chrome : sans cela une fenetre d'impression
+   * modale s'ouvrirait a chaque vente et figerait la caisse.
+   */
+  browserFallback: boolean;
   /** Bearer token the relay presents; regenerated whenever the owner asks. */
   relayToken: string;
 }
@@ -56,6 +63,7 @@ const DEFAULTS: PrintingConfig = {
     footer: 'Merci de votre visite, à bientôt !',
   },
   relayEnabled: false,
+  browserFallback: false,
   relayToken: '',
 };
 

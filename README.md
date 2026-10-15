@@ -277,6 +277,22 @@ Trois tickets, formatés pour une imprimante thermique 80 mm :
   personne ne le demande ; le bouton de réimpression reste disponible dans
   l'historique des ventes.
 
+### Se passer du relais
+
+Avec un serveur hébergé, le relais n'est pas obligatoire. L'option
+**« Laisser le navigateur imprimer si le serveur ne le peut pas »**, dans
+Admin → Imprimantes, fait imprimer la caisse elle-même par le pilote Windows.
+Plus de programme à lancer ni à laisser tourner.
+
+Ce que cela coûte : seule la caisse imprime. Une commande prise sur le
+téléphone d'un serveur ne sortira pas en cuisine. Et l'imprimante doit être
+installée dans Windows avec un port **Standard TCP/IP** sur son adresse.
+
+**N'activez cette option que si la caisse est lancée par le raccourci du
+dossier `desktop/`**, qui passe `--kiosk-printing` à Chrome. Sans lui, une
+fenêtre d'impression s'ouvrira à chaque vente et bloquera la caisse jusqu'à ce
+qu'on la ferme.
+
 Un ticket parti **tout seul** n'ouvre jamais la boîte d'impression du
 navigateur : celle-ci est modale et figerait la caisse à chaque vente. Quand le
 serveur ne peut pas imprimer, l'application le dit — « ticket non imprimé » —

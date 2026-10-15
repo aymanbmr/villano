@@ -370,6 +370,21 @@ export function PrintersAdmin() {
           Les ajouts d’articles impriment seulement les nouvelles lignes. Si l’imprimante est
           éteinte, la commande est quand même enregistrée.
         </p>
+
+        <label className="checkbox">
+          <input
+            type="checkbox"
+            checked={config.browserFallback === true}
+            onChange={(e) => patch({ browserFallback: e.target.checked })}
+          />
+          Laisser le navigateur imprimer si le serveur ne le peut pas
+        </label>
+        <p className="muted printer-hint">
+          Permet de se passer du relais : la caisse imprime elle-même, par le pilote Windows.
+          N’activez cette option que si la caisse est lancée par le raccourci <strong>Villano</strong>
+          du dossier <code>desktop</code> — sinon une fenêtre d’impression s’ouvrira à chaque vente
+          et bloquera la caisse jusqu’à ce qu’on la ferme.
+        </p>
       </section>
 
       <section className="card">

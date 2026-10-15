@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { printingApi, type PrintingConfig } from './api';
 import type { PrintJob } from './components/PrintTicket';
 
@@ -44,6 +44,7 @@ async function waitForImages() {
 export function usePrint() {
   const [job, setJob] = useState<PrintJob | null>(null);
   const [handledByServer, setHandledByServer] = useState(false);
+  const [browserFallback, setBrowserFallback] = useState(false);
   // Whether a kitchen slip should go out at all. The switch lives on the
   // server rather than in each browser, so the caisse, a waiter's phone and
   // the admin screen cannot disagree about it.
@@ -54,12 +55,20 @@ export function usePrint() {
     void loadPrintingConfig().then((config) => {
       if (!alive) return;
       setHandledByServer(serverPrintsKitchen(config));
-      if (config) setAutoKitchenState(config.autoKitchen);
+      if (config) {
+        setAutoKitchenState(config.autoKitchen);
+        setBrowserFallback(config.browserFallback === true);
+      }
     });
     return () => {
       alive = false;
     };
   }, []);
+
+  // Lu dans print() sans le faire dependre de l'etat, qui recreerait la
+  // fonction a chaque changement.
+  const browserFallbackRef = useRef(false);
+  browserFallbackRef.current = browserFallback;
 
   const setAutoKitchen = useCallback(async (value: boolean) => {
     setAutoKitchenState(value); // l'interface répond tout de suite
@@ -118,7 +127,9 @@ export function usePrint() {
         // Imprimante injoignable ou serveur muet : le navigateur prend la main
       }
     }
-    if (auto) return false;
+    // Un ticket automatique ne passe par le navigateur que si le cafe l'a
+    // demande : sans --kiosk-printing, la fenetre figerait la caisse.
+    if (auto && !browserFallbackRef.current) return false;
     setJob(next);
     return true;
   }, []);

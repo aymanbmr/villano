@@ -92,12 +92,13 @@ async function acknowledge(id) {
 }
 
 async function tick() {
+  let printed = false;
   let jobs;
   try {
     jobs = await fetchJobs();
   } catch (e) {
     log(`Serveur injoignable : ${e.message}`);
-    return;
+    return printed;
   }
 
   for (const job of jobs) {
@@ -106,14 +107,24 @@ async function tick() {
       await sendToPrinter(job.host, job.port, buffer);
       await acknowledge(job.id);
       log(`Ticket #${job.id} imprimé (${job.printerId} · ${job.host}:${job.port})`);
+      printed = true;
     } catch (e) {
       // L'imprimante est peut-être juste éteinte : on retente au prochain
       // passage plutôt que de perdre le ticket.
       log(`Ticket #${job.id} en attente : ${e.message}`);
     }
   }
+  return printed;
 }
 
-log(`Relais démarré — serveur ${SERVER_URL}, vérification toutes les ${POLL_MS / 1000}s.`);
-void tick();
-setInterval(() => void tick(), POLL_MS);
+// La pause ne sert que si la file etait vide : quand des tickets viennent de
+// sortir, d'autres attendent peut-etre derriere.
+async function loop() {
+  for (;;) {
+    const printed = await tick();
+    if (!printed) await new Promise((r) => setTimeout(r, Math.min(POLL_MS, 1000)));
+  }
+}
+
+log(`Relais démarré — serveur ${SERVER_URL}.`);
+void loop();
