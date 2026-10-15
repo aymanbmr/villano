@@ -2108,6 +2108,12 @@ select.input {
   font-weight: 700;
 }
 
+.tp-wifi {
+  margin-top: 6px;
+  padding-top: 4px;
+  border-top: 1px dashed #000;
+}
+
 .tp-footer {
   margin-top: 4px;
 }

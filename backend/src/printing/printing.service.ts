@@ -6,6 +6,7 @@ import { Socket } from 'node:net';
 import { Setting } from '../settings/setting.entity.js';
 import { Order } from '../orders/order.entity.js';
 import { EscPos } from './escpos.js';
+import { LOGO_BITMAP, LOGO_HEIGHT, LOGO_WIDTH } from './logo.js';
 import { PrintJob } from './print-job.entity.js';
 import { arpTable, discoverPrinters, findByMac, reachable, type FoundPrinter } from './discovery.js';
 
@@ -31,7 +32,16 @@ export interface PrintingConfig {
   kitchen: PrinterConfig;
   /** Send the kitchen ticket by itself as soon as an order is sent. */
   autoKitchen: boolean;
-  header: { name: string; subtitle: string; address: string; phone: string; footer: string };
+  header: {
+    name: string;
+    subtitle: string;
+    address: string;
+    phone: string;
+    footer: string;
+    /** Imprime en bas du ticket, pour que le client se connecte sans demander. */
+    wifiName: string;
+    wifiPassword: string;
+  };
   /**
    * The server cannot reach the café's printers directly (hosted away from
    * the local network): tickets are queued instead, and a small program
@@ -61,6 +71,8 @@ const DEFAULTS: PrintingConfig = {
     address: 'Adresse du restaurant',
     phone: 'Tél : 05 00 00 00 00',
     footer: 'Merci de votre visite, à bientôt !',
+    wifiName: '',
+    wifiPassword: '',
   },
   relayEnabled: false,
   browserFallback: false,
@@ -347,7 +359,13 @@ export class PrintingService {
     const paid = kind === 'receipt' && order.status === 'paid';
     const where = order.orderType === 'takeaway' ? 'À emporter' : 'Sur place';
 
-    doc.align('center').bold(true).size(2).line(config.header.name).size(1);
+    doc.align('center');
+    // Le logo n'a sa place que sur le ticket du client : en cuisine il ne
+    // ferait que consommer du papier et retarder le bon.
+    if (kind !== 'kitchen') {
+      doc.image(LOGO_BITMAP, LOGO_WIDTH, LOGO_HEIGHT).feed(1);
+    }
+    doc.bold(true).size(2).line(config.header.name).size(1);
     if (kind !== 'kitchen') {
       doc
         .bold(false)
@@ -390,7 +408,14 @@ export class PrintingService {
       } else {
         doc.align('center').bold(true).line('NON PAYÉ').bold(false).align('left');
       }
-      doc.rule().align('center').line(config.header.footer);
+      doc.rule().align('center');
+      if (config.header.wifiName || config.header.wifiPassword) {
+        doc.bold(true).line('WIFI').bold(false);
+        if (config.header.wifiName) doc.line(config.header.wifiName);
+        if (config.header.wifiPassword) doc.line(`Mot de passe : ${config.header.wifiPassword}`);
+        doc.line('');
+      }
+      doc.line(config.header.footer);
     }
 
     return doc.cut().build();

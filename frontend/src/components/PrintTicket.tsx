@@ -11,6 +11,9 @@ export type TicketKind = 'kitchen' | 'bill' | 'receipt';
 export interface PrintJob {
   kind: TicketKind;
   order: Order;
+  /** Wi-Fi du café, repris des réglages du serveur pour que le ticket du
+   *  navigateur dise la même chose que celui de l'imprimante réseau. */
+  wifi?: { name?: string; password?: string };
 }
 
 const TITLES: Record<TicketKind, string> = {
@@ -32,7 +35,7 @@ const formatDate = (iso: string) =>
 // Rendered through a portal on <body>: the print stylesheet hides the whole
 // app (caisse or admin) and keeps only this ticket, so it must never sit
 // inside the page being hidden.
-export function PrintTicket({ kind, order }: PrintJob) {
+export function PrintTicket({ kind, order, wifi }: PrintJob) {
   const paid = kind === 'receipt' && order.status === 'paid';
 
   return createPortal(
@@ -121,6 +124,13 @@ export function PrintTicket({ kind, order }: PrintJob) {
           )}
 
           <div className="tp-rule" />
+          {(wifi?.name || wifi?.password) && (
+            <div className="tp-center tp-wifi">
+              <div className="tp-title">WIFI</div>
+              {wifi.name && <div>{wifi.name}</div>}
+              {wifi.password && <div>Mot de passe : {wifi.password}</div>}
+            </div>
+          )}
           <div className="tp-center tp-footer">{RESTAURANT.footer}</div>
         </>
       )}

@@ -102,6 +102,23 @@ export class EscPos {
     return this;
   }
 
+  /**
+   * Image en noir et blanc, par la commande raster GS v 0 — celle que toutes
+   * les imprimantes ESC/POS modernes comprennent, contrairement aux logos
+   * stockes dans la memoire de l'imprimante, qu'il faut y charger d'avance.
+   *
+   * `bitmap` contient des lignes de `width / 8` octets, bit de poids fort a
+   * gauche, un bit a 1 valant un point noir.
+   */
+  image(bitmap: Buffer, width: number, height: number) {
+    const bytesPerRow = width / 8;
+    return this.raw([
+      GS, 0x76, 0x30, 0x00,
+      bytesPerRow & 0xff, (bytesPerRow >> 8) & 0xff,
+      height & 0xff, (height >> 8) & 0xff,
+    ]).raw(bitmap);
+  }
+
   feed(lines = 1) {
     return this.raw([ESC, 0x64, lines]);
   }

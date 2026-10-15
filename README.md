@@ -403,7 +403,16 @@ en-têtes/pieds de page) — c'est aussi le repli quand le serveur est
 injoignable.
 
 En-tête des tickets réseau (nom, adresse, téléphone, message de fin) :
-Admin → Imprimantes. Pour les tickets du navigateur : `frontend/src/config.ts`.
+Admin → Imprimantes.
+
+Le **logo** est imprimé en haut de chaque ticket client — pas sur le bon de
+cuisine, qui n'a pas à consommer du papier pour ça. Il est stocké prêt à
+l'emploi dans `backend/src/printing/logo.ts`, en noir et blanc, 176 × 240
+points : à regénérer seulement si le logo change.
+
+Le **Wi-Fi du café**, s'il est renseigné dans les mêmes réglages, apparaît en
+bas du ticket, juste avant le message de fin. Le client se connecte sans avoir
+à demander. Laissez les champs vides pour ne rien imprimer. Pour les tickets du navigateur : `frontend/src/config.ts`.
 
 ## Base de données : SQLite ou PostgreSQL
 

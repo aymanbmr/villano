@@ -580,7 +580,15 @@ export interface PrintingConfig {
   autoKitchen: boolean;
   /** Laisse le navigateur imprimer quand le serveur ne le peut pas. */
   browserFallback?: boolean;
-  header: { name: string; subtitle: string; address: string; phone: string; footer: string };
+  header: {
+    name: string;
+    subtitle: string;
+    address: string;
+    phone: string;
+    footer: string;
+    wifiName?: string;
+    wifiPassword?: string;
+  };
   // Serveur hébergé à distance : les tickets sont mis en attente pour le
   // relais local plutôt qu'envoyés directement.
   relayEnabled: boolean;

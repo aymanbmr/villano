@@ -389,6 +389,11 @@ export function PrintersAdmin() {
 
       <section className="card">
         <h3>En-tête des tickets</h3>
+        <p className="muted printer-hint">
+          Le logo Villano est imprimé en haut de chaque ticket client. Le Wi-Fi, s’il est
+          renseigné, apparaît en bas, juste avant le message de fin — le client se connecte
+          sans avoir à demander.
+        </p>
         <div className="form-grid">
           <label className="field">
             <span>Nom</span>
@@ -420,6 +425,24 @@ export function PrintersAdmin() {
               className="input"
               value={config.header.phone}
               onChange={(e) => patch({ header: { ...config.header, phone: e.target.value } })}
+            />
+          </label>
+          <label className="field">
+            <span>Nom du réseau Wi-Fi</span>
+            <input
+              className="input"
+              value={config.header.wifiName ?? ''}
+              placeholder="laisser vide pour ne rien imprimer"
+              onChange={(e) => patch({ header: { ...config.header, wifiName: e.target.value } })}
+            />
+          </label>
+          <label className="field">
+            <span>Mot de passe Wi-Fi</span>
+            <input
+              className="input"
+              value={config.header.wifiPassword ?? ''}
+              placeholder="laisser vide pour ne rien imprimer"
+              onChange={(e) => patch({ header: { ...config.header, wifiPassword: e.target.value } })}
             />
           </label>
           <label className="field field-full">

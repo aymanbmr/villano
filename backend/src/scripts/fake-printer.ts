@@ -37,6 +37,15 @@ function decode(buffer: Buffer): string {
       const next = buffer[i + 1];
       if (next === 0x21) { flush(); i += 2; continue; } // taille
       if (next === 0x56) { flush(); out.push('[COUPE]'); i += 3; continue; }
+      // Image raster : on annonce ses dimensions et on saute ses octets
+      if (next === 0x76 && buffer[i + 2] === 0x30) {
+        flush();
+        const octetsParLigne = buffer[i + 4] | (buffer[i + 5] << 8);
+        const hauteur = buffer[i + 6] | (buffer[i + 7] << 8);
+        out.push(`[IMAGE ${octetsParLigne * 8}x${hauteur}]`);
+        i += 8 + octetsParLigne * hauteur - 1;
+        continue;
+      }
     }
     if (byte === 0x0a) { flush(); out.push('\n'); continue; }
 

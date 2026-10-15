@@ -130,7 +130,13 @@ export function usePrint() {
     // Un ticket automatique ne passe par le navigateur que si le cafe l'a
     // demande : sans --kiosk-printing, la fenetre figerait la caisse.
     if (auto && !browserFallbackRef.current) return false;
-    setJob(next);
+    // Le ticket du navigateur reprend le Wi-Fi des reglages du serveur, pour
+    // ne pas dire autre chose que celui de l'imprimante reseau.
+    const config = await loadPrintingConfig();
+    setJob({
+      ...next,
+      wifi: { name: config?.header.wifiName, password: config?.header.wifiPassword },
+    });
     return true;
   }, []);
 
