@@ -536,6 +536,32 @@ copie. Les images partent dans une archive à part, et le script s'arrête en
 erreur si la sauvegarde produite est vide, pour ne pas découvrir le problème le
 jour de la restauration. Une sauvegarde précède chaque mise à jour.
 
+### Imprimer quand le serveur est hébergé
+
+Un serveur dans un datacenter ne peut pas joindre une imprimante du café :
+`192.168.1.95` n'existe que sur le réseau local, et des millions de réseaux ont
+une machine à cette adresse. La recherche d'imprimantes ne trouvera rien — elle
+balaie le réseau du datacenter — et une adresse saisie à la main répondra
+« imprimante injoignable ».
+
+C'est donc le **navigateur de la caisse** qui imprime, ce PC étant sur le même
+réseau que les imprimantes. Pour que ce soit silencieux :
+
+1. Installer l'imprimante dans Windows avec un port **Standard TCP/IP** pointant
+   sur son adresse, et non un port USB.
+2. Lui donner un format de papier (80 × 297 mm), sinon elle attend une page
+   entière qui n'arrive jamais.
+3. La définir comme **imprimante par défaut** de Windows.
+4. Lancer la caisse par le raccourci du dossier `desktop/`, qui passe
+   `--kiosk-printing` à Chrome et supprime la fenêtre d'impression.
+5. Laisser **Admin → Imprimantes vide**. Une adresse configurée mais injoignable
+   ferait patienter avant chaque ticket, le temps que le serveur renonce.
+
+Ce que cela coûte : seule la caisse imprime. Une commande prise sur le
+téléphone d'un serveur ne sortira pas en cuisine toute seule, puisque le
+serveur hébergé ne peut pas la relayer. Pour retrouver cela, il faudrait un
+agent d'impression tournant au café — voir ci-dessous.
+
 ### Ce qu'un VPS fait perdre : l'impression directe
 
 Les imprimantes sont sur le réseau local du café, derrière la box. Un serveur

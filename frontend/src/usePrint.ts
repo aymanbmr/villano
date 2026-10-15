@@ -15,6 +15,9 @@ export function refreshPrintingConfig() {
   configPromise = null;
 }
 
+/** Au-delà, on considère que le serveur n'imprimera pas et on bascule. */
+const SERVER_PRINT_TIMEOUT = 2500;
+
 /** True when the server sends kitchen tickets to a network printer by itself. */
 function serverPrintsKitchen(config: PrintingConfig | null) {
   return !!config && config.autoKitchen && config.kitchen.enabled && !!config.kitchen.host;
@@ -95,10 +98,17 @@ export function usePrint() {
   const print = useCallback(async (next: PrintJob, { server = true } = {}) => {
     if (server && next.order.id > 0 && navigator.onLine) {
       try {
-        const result = await printingApi.print(next.kind, next.order.id);
-        if (result.printed) return;
+        // Un serveur hébergé ne peut pas joindre une imprimante du café : il
+        // sonderait l'adresse, balaierait son réseau puis expirerait, soit une
+        // dizaine de secondes avant que le navigateur ne prenne le relais. On
+        // ne lui laisse que le temps d'une imprimante réellement joignable.
+        const result = await Promise.race([
+          printingApi.print(next.kind, next.order.id),
+          new Promise<null>((resolve) => setTimeout(() => resolve(null), SERVER_PRINT_TIMEOUT)),
+        ]);
+        if (result?.printed) return;
       } catch {
-        // Printer unreachable or server down: fall back to the browser dialog
+        // Imprimante injoignable ou serveur muet : le navigateur prend la main
       }
     }
     setJob(next);
