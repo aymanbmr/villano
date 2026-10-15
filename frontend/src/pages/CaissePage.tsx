@@ -13,6 +13,7 @@ import {
   type WorkDay,
   formatPrice,
   orderLabel,
+  cachedSnapshot,
 } from '../api';
 import { useCart } from '../useCart';
 import { MenuGrid } from '../components/MenuGrid';
@@ -37,9 +38,13 @@ const errorMessage = (e: unknown) =>
   e instanceof ApiError ? e.message : 'Erreur réseau, réessayez.';
 
 export function CaissePage() {
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [products, setProducts] = useState<Product[]>([]);
-  const [staff, setStaff] = useState<StaffMember[]>([]);
+  // Ouvrir sur ce que la caisse a vu la derniere fois, puis rafraichir : le
+  // menu s'affiche aussitot au lieu d'attendre le serveur, ce qui se voyait
+  // d'autant plus que celui-ci est loin.
+  const [snapshot] = useState(cachedSnapshot);
+  const [categories, setCategories] = useState<Category[]>(snapshot.categories ?? []);
+  const [products, setProducts] = useState<Product[]>(snapshot.products ?? []);
+  const [staff, setStaff] = useState<StaffMember[]>(snapshot.staff ?? []);
   const [pendingOrders, setPendingOrders] = useState<Order[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
   // undefined = not checked yet, null = closed, object = the open day
@@ -99,7 +104,11 @@ export function CaissePage() {
   }, [cart.syncProducts]);
 
   useEffect(() => {
+    if (snapshot.products?.length) cart.syncProducts(snapshot.products);
     void load();
+    // Le cache n'est lu qu'au montage : les rafraichissements suivants
+    // viennent du serveur.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [load]);
 
   // Keep stock and open orders fresh when several caisses are in use

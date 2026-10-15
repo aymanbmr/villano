@@ -533,6 +533,21 @@ export interface Stats {
   unsold: { productId: number; name: string; price: number; stock: number }[];
 }
 
+/**
+ * Ce que la caisse a vu la derniere fois, lisible sans reseau. Permet de
+ * peindre l'ecran a l'ouverture au lieu d'attendre le serveur : avec un serveur
+ * lointain, l'attente se voyait a chaque demarrage, pour des donnees — le menu,
+ * les employes — qui n'avaient pas bouge.
+ */
+export function cachedSnapshot() {
+  return {
+    categories: cacheGet<Category[]>('categories'),
+    products: cacheGet<Product[]>('products'),
+    staff: cacheGet<StaffMember[]>('staff'),
+    workDay: cacheGet<WorkDay | null>('workDay'),
+  };
+}
+
 export const statsApi = {
   summary: (from: string, to: string) => request<Stats>(`/stats?from=${from}&to=${to}`),
   orders: (status: OrderStatus, from: string, to: string, limit = 200) =>

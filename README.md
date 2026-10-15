@@ -238,6 +238,23 @@ Catégories passe sous le tableau en dessous de 1400 px, et la barre du haut
 retire progressivement ses libellés quand la largeur diminue. Sur écran
 tactile, tous les boutons font au moins 38 px.
 
+## Serveur lointain : ce qui a été fait pour la latence
+
+Un serveur hébergé loin du café fait payer chaque aller-retour. Deux mesures
+réduisent le nombre et le poids de ces allers-retours.
+
+**La caisse s'ouvre sur ce qu'elle a vu la dernière fois** — menu, catégories,
+employés — puis se rafraîchit en arrière-plan. Mesuré avec 270 ms de latence
+simulée : le menu apparaît en **177 ms au lieu de 736**.
+
+**Une action ne recharge plus tout.** Encaisser relisait le menu, les
+catégories, les employés, les commandes et la journée, et bloquait l'écran
+jusqu'au dernier. Seules les commandes et la journée sont maintenant relues, en
+arrière-plan : 5 appels au lieu de 8, et l'interface n'en attend plus qu'un.
+
+Cela ne supprime pas la distance. Un serveur en Europe plutôt qu'en Amérique du
+Nord reste le vrai levier : environ 40 ms d'aller-retour au lieu de 270.
+
 ## Mode hors ligne (coupure réseau)
 
 Si le serveur devient injoignable (Wi-Fi coupé, PC serveur redémarré), la
