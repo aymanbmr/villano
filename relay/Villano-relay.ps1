@@ -121,6 +121,8 @@ function Send-ToPrinter($printerHost, $printerPort, $bytes) {
 Write-Log ('Relais demarre -- serveur ' + $serverUrl + ', verification toutes les ' + [int]($pollMs / 1000) + ' s.')
 Write-Log 'Laissez cette fenetre ouverte. Ctrl+C pour arreter.'
 
+$rawDumped = $false
+
 while ($true) {
     try {
         $raw = Invoke-Server 'GET' '/api/printing/relay/jobs'
@@ -129,8 +131,29 @@ while ($true) {
         foreach ($job in $jobs) {
             $id = Get-Field $job 'id'
             $printerHost = Get-Field $job 'host'
-            $printerPort = [int](Get-Field $job 'port')
+            $rawPort = Get-Field $job 'port'
             $payload = Get-Field $job 'payload'
+
+            # Un ticket sans adresse ne pourra jamais sortir : il a ete mis en
+            # file avant que l'imprimante ne soit renseignee. Le dire une bonne
+            # fois plutot que de reessayer sans fin.
+            if (-not $printerHost) {
+                Write-Log ("Ticket " + $id + " sans adresse d'imprimante." +
+                    " Renseignez-la dans Admin - Imprimantes, puis supprimez ce ticket :" +
+                    " " + $serverUrl + "/api/printing/relay/jobs/" + $id)
+                # Si l'identifiant manque aussi, ce n'est pas l'adresse qui est
+                # vide : c'est la reponse qui n'a pas la forme attendue. On la
+                # montre une fois, pour pouvoir diagnostiquer.
+                if (-not $id -and -not $rawDumped) {
+                    Write-Log ('Reponse brute du serveur : ' + $raw.Substring(0, [Math]::Min(400, $raw.Length)))
+                    $rawDumped = $true
+                }
+                continue
+            }
+
+            $printerPort = 9100
+            if ($rawPort) { $printerPort = [int]$rawPort }
+
             try {
                 $bytes = [Convert]::FromBase64String($payload)
                 Send-ToPrinter $printerHost $printerPort $bytes
