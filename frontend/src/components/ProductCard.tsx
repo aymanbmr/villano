@@ -40,7 +40,7 @@ export function ProductCard({ product, inCart, onAdd }: Props) {
     >
       <div className="product-image">
         {product.imageUrl ? (
-          <img src={product.imageUrl} alt={product.name} loading="lazy" />
+          <img src={product.imageUrl} alt={product.name} />
         ) : (
           <div className="product-image-placeholder">{product.name.charAt(0)}</div>
         )}
