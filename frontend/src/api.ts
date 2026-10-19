@@ -229,15 +229,17 @@ export const api = {
   products: async () => applyPendingStock(await cached('products', () => request<Product[]>('/products'))),
   staff: () => cached('staff', () => request<StaffMember[]>('/staff')),
 
-  // Orders taken today, which can still be added to or cancelled, plus those
-  // still waiting in the outbox. Newest last.
-  recentOrders: async (): Promise<Order[]> => {
+  // Orders settled since the business day opened (not the calendar day: a
+  // day that runs past midnight stays the same day until closed by hand),
+  // plus those still waiting in the outbox. Newest last.
+  recentOrders: async (sinceIso: string | null): Promise<Order[]> => {
     const products = cacheGet<Product[]>('products') ?? [];
     const locals = getLocalOrders().map((l) => localToOrder(l, products));
+    if (!sinceIso) return locals;
     try {
-      const today = new Date();
-      const day = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-      const server = await request<Order[]>(`/orders?status=paid&from=${day}&to=${day}&limit=200`);
+      const server = await request<Order[]>(
+        `/orders?status=paid&since=${encodeURIComponent(sinceIso)}&limit=200`,
+      );
       cacheSet('pendingOrders', server);
       return [...applyOpsToOrders(server), ...locals];
     } catch (e) {

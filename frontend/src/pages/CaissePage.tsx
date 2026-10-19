@@ -80,13 +80,15 @@ export function CaissePage() {
 
   const load = useCallback(async () => {
     try {
-      const [cats, prods, staffList, pending, day] = await Promise.all([
+      const [cats, prods, staffList, day] = await Promise.all([
         api.categories(),
         api.products(),
         api.staff(),
-        api.recentOrders(),
         workDayApi.current(),
       ]);
+      // La liste « Du jour » suit la journée ouverte à la main, pas le jour
+      // calendaire : elle a besoin de savoir depuis quand avant de charger.
+      const pending = await api.recentOrders(day?.openedAt ?? null);
       setCategories(cats);
       setProducts(prods);
       setStaff(staffList);
@@ -211,7 +213,8 @@ export function CaissePage() {
    */
   const refreshOrders = useCallback(async () => {
     try {
-      const [orders, day] = await Promise.all([api.recentOrders(), workDayApi.current()]);
+      const day = await workDayApi.current();
+      const orders = await api.recentOrders(day?.openedAt ?? null);
       setPendingOrders(orders);
       setWorkDay(day);
     } catch {
@@ -330,7 +333,7 @@ export function CaissePage() {
               className={view === 'open' ? 'is-active' : ''}
               onClick={() => setView('open')}
             >
-              Du jour
+              De la journée
               {pendingOrders.length > 0 && (
                 <span className="pill pill-warn">{pendingOrders.length}</span>
               )}

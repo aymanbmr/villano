@@ -53,7 +53,7 @@ export function OpenOrders({
   if (orders.length === 0) {
     return (
       <div className="cart-body">
-        <p className="empty">Aucune commande aujourd’hui.</p>
+        <p className="empty">Aucune commande pour cette journée.</p>
       </div>
     );
   }

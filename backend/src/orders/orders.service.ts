@@ -5,7 +5,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Between, DataSource, EntityManager, FindOptionsWhere, IsNull, Repository } from 'typeorm';
+import { Between, DataSource, EntityManager, FindOptionsWhere, IsNull, MoreThanOrEqual, Repository } from 'typeorm';
 import { Employee } from '../employees/employee.entity.js';
 import { Product } from '../products/product.entity.js';
 import { WorkDay } from '../work-days/work-day.entity.js';
@@ -46,11 +46,15 @@ export class OrdersService {
 
   private readonly stockEnabled: boolean;
 
-  // from/to are local calendar days (YYYY-MM-DD), inclusive
-  findAll(status?: OrderStatus, limit = 50, from?: string, to?: string) {
+  // from/to are local calendar days (YYYY-MM-DD), inclusive. "since" (an ISO
+  // datetime) takes priority when given: an exact moment rather than a whole
+  // day, for callers following the business day instead of the calendar day.
+  findAll(status?: OrderStatus, limit = 50, from?: string, to?: string, since?: string) {
     const where: FindOptionsWhere<Order> = {};
     if (status) where.status = status;
-    if (from || to) {
+    if (since) {
+      where.createdAt = MoreThanOrEqual(new Date(since));
+    } else if (from || to) {
       const start = from ? localDay(from) : new Date(2000, 0, 1);
       const end = to ? localDay(to) : new Date();
       end.setHours(23, 59, 59, 999);

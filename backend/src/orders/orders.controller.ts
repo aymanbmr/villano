@@ -31,17 +31,21 @@ export class OrdersController {
   ) {}
 
   // GET /orders?status=pending
+  // "since" (ISO datetime) overrides "from"/"to": used for the caisse's « Du
+  // jour » list, which must follow the manually opened/closed business day,
+  // not the calendar date.
   @Get()
   findAll(
     @Query('status') status?: string,
     @Query('limit') limit?: string,
     @Query('from') from?: string,
     @Query('to') to?: string,
+    @Query('since') since?: string,
   ) {
     if (status && !STATUSES.includes(status as OrderStatus)) {
       throw new BadRequestException(`status must be one of ${STATUSES.join(', ')}`);
     }
-    return this.orders.findAll(status as OrderStatus | undefined, limit ? Number(limit) : undefined, from, to);
+    return this.orders.findAll(status as OrderStatus | undefined, limit ? Number(limit) : undefined, from, to, since);
   }
 
   @Get(':id')
