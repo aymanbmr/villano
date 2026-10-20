@@ -22,6 +22,36 @@ export function CategoriesAdmin({ categories, productCount, onChanged, onError }
   const [picking, setPicking] = useState<'new' | number | null>(null);
   const [editName, setEditName] = useState('');
   const [editIcon, setEditIcon] = useState('');
+  const [moving, setMoving] = useState(false);
+
+  /**
+   * Monte ou descend une catégorie d'un cran. L'ordre choisi ici est celui des
+   * onglets de la caisse, et aussi celui des produits dans l'onglet « Tous » :
+   * mettre les boissons chaudes en premier les y fait remonter.
+   */
+  const move = async (index: number, delta: number) => {
+    const cible = index + delta;
+    if (cible < 0 || cible >= categories.length || moving) return;
+    const ordre = [...categories];
+    [ordre[index], ordre[cible]] = [ordre[cible], ordre[index]];
+    setMoving(true);
+    try {
+      // On renumérote toute la liste au lieu d'échanger deux valeurs : à
+      // l'import, les catégories partagent souvent le même rang, et échanger
+      // deux rangs identiques ne changerait rien à l'affichage.
+      const aEnvoyer = ordre
+        .map((c, rang) => ({ c, rang }))
+        .filter(({ c, rang }) => c.sortOrder !== rang);
+      for (const { c, rang } of aEnvoyer) {
+        await adminApi.updateCategory(c.id, { sortOrder: rang });
+      }
+      onChanged();
+    } catch (e) {
+      onError(fail(e));
+    } finally {
+      setMoving(false);
+    }
+  };
 
   const add = async () => {
     if (!newName.trim()) return;
@@ -74,8 +104,11 @@ export function CategoriesAdmin({ categories, productCount, onChanged, onError }
   return (
     <section className="card categories-admin">
       <h3>Catégories</h3>
+      <div className="muted category-hint">
+        Cet ordre est celui des onglets de la caisse, et celui des produits dans « Tous ».
+      </div>
       <ul className="category-list">
-        {categories.map((c) =>
+        {categories.map((c, index) =>
           editingId === c.id ? (
             <li key={c.id} className="category-edit">
               <button
@@ -107,6 +140,24 @@ export function CategoriesAdmin({ categories, productCount, onChanged, onError }
                 {c.name}
                 <span className="muted"> · {productCount(c.id)}</span>
               </span>
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm"
+                onClick={() => void move(index, -1)}
+                disabled={index === 0 || moving}
+                title="Monter"
+              >
+                <Icon name="up" size={14} />
+              </button>
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm"
+                onClick={() => void move(index, 1)}
+                disabled={index === categories.length - 1 || moving}
+                title="Descendre"
+              >
+                <Icon name="down" size={14} />
+              </button>
               <button type="button" className="btn-link" onClick={() => startEdit(c)}>
                 Modifier
               </button>

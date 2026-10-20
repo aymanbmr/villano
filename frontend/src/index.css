@@ -1508,6 +1508,18 @@ select.input {
   font-weight: 500;
 }
 
+.category-hint {
+  margin: -4px 0 10px;
+  font-size: 12px;
+}
+
+/* Les deux fleches de reordonnancement, serrees l'une contre l'autre : on les
+   lit alors comme un seul reglage, et non comme deux actions separees. */
+.category-list .btn-ghost.btn-sm {
+  padding: 2px 5px;
+  min-width: 0;
+}
+
 .category-add,
 .category-edit {
   display: flex;

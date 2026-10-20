@@ -16,10 +16,25 @@ export class ProductsService {
     private readonly repo: Repository<Product>,
   ) {}
 
-  findAll(categoryId?: number) {
-    return this.repo.find({
+  async findAll(categoryId?: number) {
+    const produits = await this.repo.find({
       where: categoryId ? { categoryId } : {},
       order: { name: 'ASC' },
+    });
+    // Les produits suivent l'ordre des categories, puis l'alphabet : dans
+    // l'onglet « Tous », le serveur trouve les boissons chaudes et les petits
+    // dejeuners en tete plutot qu'un classement alphabetique qui melange tout.
+    //
+    // Trie en JS plutot qu'en SQL : la place des valeurs nulles depend du
+    // moteur, et un produit sans categorie ne doit pas remonter en premier.
+    const rang = (p: Product) => p.category?.sortOrder ?? Number.MAX_SAFE_INTEGER;
+    const famille = (p: Product) => p.category?.name ?? '';
+    return produits.sort((a, b) => {
+      if (rang(a) !== rang(b)) return rang(a) - rang(b);
+      // Meme rang : on departage comme le fait la liste des categories
+      const parFamille = famille(a).localeCompare(famille(b), 'fr');
+      if (parFamille !== 0) return parFamille;
+      return a.name.localeCompare(b.name, 'fr');
     });
   }
 
