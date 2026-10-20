@@ -82,6 +82,8 @@ export function usePrint() {
   // Lu dans print() par reference, pour ne pas recreer la fonction a chaque
   // changement d'etat.
   const serveurImprimeRef = useRef(false);
+  // Le serveur a-t-il deja montre qu'il n'atteignait pas l'imprimante ?
+  const serveurAEchoueRef = useRef(false);
   const [browserFallback, setBrowserFallback] = useState(false);
   // Whether a kitchen slip should go out at all. The switch lives on the
   // server rather than in each browser, so the caisse, a waiter's phone and
@@ -194,7 +196,18 @@ export function usePrint() {
     }
 
     // 2. Le serveur, quand il peut joindre une imprimante lui-meme.
-    if (server && serveurImprimeRef.current && next.order.id > 0 && navigator.onLine) {
+    //
+    // Un serveur heberge n'atteindra jamais une 192.168.x.x du cafe. Son echec
+    // coute pourtant l'attente complete, et le payer a chaque vente faisait
+    // exactement le delai qu'on cherche a supprimer. On ne l'essaie donc
+    // qu'une fois : le premier echec le retire du chemin pour la session.
+    if (
+      server &&
+      serveurImprimeRef.current &&
+      !serveurAEchoueRef.current &&
+      next.order.id > 0 &&
+      navigator.onLine
+    ) {
       try {
         // Un serveur hébergé ne peut pas joindre une imprimante du café : il
         // sonderait l'adresse, balaierait son réseau puis expirerait, soit une
@@ -205,8 +218,10 @@ export function usePrint() {
           new Promise<null>((resolve) => setTimeout(() => resolve(null), SERVER_PRINT_TIMEOUT)),
         ]);
         if (result?.printed) return true;
+        serveurAEchoueRef.current = true;
       } catch {
         // Imprimante injoignable ou serveur muet : le navigateur prend la main
+        serveurAEchoueRef.current = true;
       }
     }
     // 3. Le navigateur, en dernier recours. Un ticket automatique n'y passe que
