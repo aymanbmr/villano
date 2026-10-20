@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { printingApi, type PrintingConfig } from './api';
 import type { PrintJob } from './components/PrintTicket';
+import { agentPresent, imprimerParAgent, oublierPresence } from './printing/agent';
+import { printerFor, renderTicket } from './printing/ticket';
 
 // The printing setup rarely changes, so it is fetched once per session and
 // refreshed when the admin saves it.
@@ -20,6 +22,15 @@ function loadPrintingConfig() {
 
 export function refreshPrintingConfig() {
   configPromise = null;
+  // L'agent a peut-etre ete demarre entre-temps : on redemande plutot que de
+  // rester sur un constat d'absence qui enverrait les tickets au navigateur.
+  oublierPresence();
+}
+
+/** Une imprimante est-elle renseignee, quel que soit le ticket ? */
+function imprimanteRenseignee(config: PrintingConfig | null) {
+  if (!config) return false;
+  return !!printerFor('receipt', config) || !!printerFor('kitchen', config);
 }
 
 /** Au-delà, on considère que le serveur n'imprimera pas et on bascule. */
@@ -79,14 +90,20 @@ export function usePrint() {
 
   useEffect(() => {
     let alive = true;
-    void loadPrintingConfig().then((config) => {
+    void loadPrintingConfig().then(async (config) => {
       if (!alive) return;
-      setHandledByServer(serverPrintsKitchen(config));
-      serveurImprimeRef.current = serveurPeutImprimer(config);
       if (config) {
         setAutoKitchenState(config.autoKitchen);
         setBrowserFallback(config.browserFallback === true);
       }
+      // Quand l'agent local repond, il imprime tout : le serveur sort de la
+      // boucle, et la caisse se charge elle-meme du bon de cuisine. C'est ce
+      // qui rend l'impression insensible a la connexion, puisque plus rien ne
+      // quitte le cafe.
+      const agent = imprimanteRenseignee(config) && (await agentPresent());
+      if (!alive) return;
+      setHandledByServer(!agent && serverPrintsKitchen(config));
+      serveurImprimeRef.current = !agent && serveurPeutImprimer(config);
     });
     return () => {
       alive = false;
@@ -153,6 +170,30 @@ export function usePrint() {
    * serveur n'a pas pu imprimer est donc signale, pas affiche.
    */
   const print = useCallback(async (next: PrintJob, { server = true, auto = false } = {}) => {
+    const config = await loadPrintingConfig();
+
+    // 1. L'agent local, le chemin normal au cafe. La caisse fabrique les octets
+    // du ticket et les remet a l'agent, sur la meme machine : il n'y a donc
+    // aucune difference entre « avec connexion » et « sans », et chaque ticket
+    // part sur SON imprimante -- ce qu'un navigateur, limite a une seule
+    // destination, ne saurait pas faire.
+    if (config) {
+      const imprimante = printerFor(next.kind, config);
+      if (imprimante && (await agentPresent())) {
+        const octets = renderTicket(next.kind, next.order, config, imprimante);
+        const sorti = await imprimerParAgent({
+          host: imprimante.host,
+          port: imprimante.port,
+          payload: octets,
+        });
+        if (sorti) return true;
+        // L'agent est la mais l'imprimante a refuse : inutile d'aller demander
+        // au serveur de joindre la meme imprimante, il echouerait pareil.
+        if (auto && !browserFallbackRef.current) return false;
+      }
+    }
+
+    // 2. Le serveur, quand il peut joindre une imprimante lui-meme.
     if (server && serveurImprimeRef.current && next.order.id > 0 && navigator.onLine) {
       try {
         // Un serveur hébergé ne peut pas joindre une imprimante du café : il
@@ -168,12 +209,12 @@ export function usePrint() {
         // Imprimante injoignable ou serveur muet : le navigateur prend la main
       }
     }
-    // Un ticket automatique ne passe par le navigateur que si le cafe l'a
-    // demande : sans --kiosk-printing, la fenetre figerait la caisse.
+    // 3. Le navigateur, en dernier recours. Un ticket automatique n'y passe que
+    // si le cafe l'a demande : sans --kiosk-printing, la fenetre figerait la
+    // caisse a chaque vente.
     if (auto && !browserFallbackRef.current) return false;
     // Le ticket du navigateur reprend le Wi-Fi des reglages du serveur, pour
     // ne pas dire autre chose que celui de l'imprimante reseau.
-    const config = await loadPrintingConfig();
     setQueue((q) => [
       ...q,
       { ...next, wifi: { name: config?.header.wifiName, password: config?.header.wifiPassword } },

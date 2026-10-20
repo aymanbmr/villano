@@ -8,6 +8,8 @@ import {
   type PrintingConfig,
 } from '../../api';
 import { Icon } from '../../components/Icon';
+import { agentPresent, imprimerParAgent } from '../../printing/agent';
+import { renderTestPage } from '../../printing/ticket';
 import { refreshPrintingConfig } from '../../usePrint';
 
 const fail = (e: unknown) => (e instanceof ApiError ? e.message : 'Erreur réseau');
@@ -196,15 +198,29 @@ export function PrintersAdmin() {
     setBusy(true);
     setError(null);
     setMessage(null);
+    const ou = id === 'kitchen' ? 'cuisine' : 'comptoir';
     try {
       await printingApi.save(config);
       refreshPrintingConfig();
+
+      // L'agent de la caisse d'abord : un serveur hébergé ne peut pas joindre
+      // une imprimante du café, son essai échouerait forcément. Ici c'est la
+      // machine devant l'employé qui envoie, donc le test dit la vérité.
+      const imprimante = id === 'kitchen' ? config.kitchen : config.counter;
+      if (imprimante.host && (await agentPresent())) {
+        const sorti = await imprimerParAgent({
+          host: imprimante.host,
+          port: imprimante.port,
+          payload: renderTestPage(id, config, imprimante),
+        });
+        setBusy(false);
+        if (sorti) setMessage(`Page de test envoyée à l’imprimante ${ou} par l’agent de la caisse.`);
+        else setError(`L’agent n’a pas pu joindre ${imprimante.host}:${imprimante.port}. Imprimante allumée et sur le réseau ?`);
+        return;
+      }
+
       await printingApi.test(id);
-      setMessage(
-        id === 'kitchen'
-          ? 'Page de test envoyée à l’imprimante cuisine.'
-          : 'Page de test envoyée à l’imprimante comptoir.',
-      );
+      setMessage(`Page de test envoyée à l’imprimante ${ou}.`);
     } catch (e) {
       setError(fail(e));
     } finally {
@@ -218,8 +234,8 @@ export function PrintersAdmin() {
         <div>
           <h2 className="page-title">Imprimantes</h2>
           <div className="muted">
-            Imprimantes thermiques du réseau : le serveur leur envoie les tickets directement,
-            sans passer par le navigateur.
+            Imprimantes thermiques du réseau. C’est l’agent installé sur la caisse qui leur
+            envoie les tickets, sans passer par le navigateur ni par internet.
           </div>
         </div>
         <button type="button" className="btn btn-primary" disabled={busy} onClick={save}>
