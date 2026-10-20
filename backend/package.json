@@ -23,6 +23,7 @@
     "seed:demo": "nest build && node dist/scripts/seed-demo.js",
     "import:menu": "nest build && node dist/scripts/import-menu.js",
     "import:petit-dejeuner": "nest build && node dist/scripts/import-petit-dejeuner.js",
+    "apply:menu-photos": "nest build && node dist/scripts/apply-menu-photos.js",
     "apply:stock-photos": "nest build && node dist/scripts/apply-stock-photos.js",
     "fix:images": "nest build && node dist/scripts/rebuild-placeholders.js",
     "migrate:postgres": "nest build && node dist/scripts/sqlite-to-postgres.js",
