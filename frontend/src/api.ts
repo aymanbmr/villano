@@ -15,6 +15,7 @@ import {
   localUpdateItem,
   localUpdateOrder,
   applyOpsToOrders,
+  getOfflineState,
   markOffline,
   markOnline,
   paidOptimistically,
@@ -155,18 +156,44 @@ function isUnreachable(res: Response) {
   return res.status === 500 && !(res.headers.get('content-type') ?? '').includes('json');
 }
 
-function rawSend(path: string, init: RequestInit) {
+/**
+ * Au-dela, le serveur est considere injoignable.
+ *
+ * Sans limite, fetch attend le verdict du systeme. Quand internet tombe mais
+ * que le cable de la caisse reste branche, le routeur n'a plus de route : les
+ * paquets ne sont pas refuses, ils sont perdus, et Windows reessaie une
+ * vingtaine de secondes avant d'abandonner. La caisse attendait tout cela
+ * avant de seulement demander ses tickets. Trois secondes sont tres larges :
+ * le VPS repond en 265 ms.
+ */
+const SERVER_TIMEOUT = 3000;
+
+/**
+ * Et quand on sait deja etre hors ligne, inutile de reserver trois secondes a
+ * chaque vente : il suffit de laisser au serveur le temps de prouver qu'il est
+ * revenu. Sans cette seconde limite, le delai etait repaye a chaque ticket.
+ */
+const OFFLINE_TIMEOUT = 700;
+
+/** Pour les appels qui sondent le reseau et peuvent legitimement durer. */
+const LONG_TIMEOUT = 30_000;
+
+function rawSend(path: string, init: RequestInit, timeoutMs?: number) {
+  const limite = timeoutMs ?? (getOfflineState().online ? SERVER_TIMEOUT : OFFLINE_TIMEOUT);
+  const stop = new AbortController();
+  const minuteur = setTimeout(() => stop.abort(), limite);
   return fetch('/api' + path, {
     ...init,
+    signal: init.signal ?? stop.signal,
     headers: { 'Content-Type': 'application/json', ...authHeaders(), ...init.headers },
-  });
+  }).finally(() => clearTimeout(minuteur));
 }
 setSender(rawSend);
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
+async function request<T>(path: string, init?: RequestInit, timeoutMs?: number): Promise<T> {
   let res: Response;
   try {
-    res = await rawSend(path, init ?? {});
+    res = await rawSend(path, init ?? {}, timeoutMs);
   } catch {
     // fetch only throws when the server could not be reached at all
     markOffline();
@@ -612,9 +639,11 @@ export const printingApi = {
   config: () => cached('printingConfig', () => request<PrintingConfig>('/printing/config')),
   save: (patch: Partial<PrintingConfig>) =>
     request<PrintingConfig>('/printing/config', json('PUT', patch)),
+  // Ces deux-la sondent le reseau -- une imprimante lente a repondre, ou un
+  // balayage complet. La limite courte les trancherait a tort.
   test: (printer: PrinterId) =>
-    request<PrintResult>(`/printing/test/${printer}`, { method: 'POST' }),
-  discover: () => request<FoundPrinter[]>('/printing/discover'),
+    request<PrintResult>(`/printing/test/${printer}`, { method: 'POST' }, LONG_TIMEOUT),
+  discover: () => request<FoundPrinter[]>('/printing/discover', undefined, LONG_TIMEOUT),
   regenerateRelayToken: async (): Promise<string> =>
     (await request<{ relayToken: string }>('/printing/relay/token', { method: 'POST' })).relayToken,
   // Accessible à la caisse, contrairement au reste de la configuration

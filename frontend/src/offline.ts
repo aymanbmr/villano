@@ -132,14 +132,22 @@ export function markOffline() {
 
 /** Ask the server directly; used by the periodic probe. */
 export async function probe(): Promise<boolean> {
+  // Avec une limite, sans quoi la sonde attend le verdict du systeme -- une
+  // vingtaine de secondes quand les paquets sont perdus plutot que refuses.
+  // Elle tournait alors moins souvent que son intervalle, et la bascule hors
+  // ligne arrivait apres la vente au lieu d'avant.
+  const stop = new AbortController();
+  const minuteur = setTimeout(() => stop.abort(), 2000);
   try {
-    const res = await fetch('/api/health', { cache: 'no-store' });
+    const res = await fetch('/api/health', { cache: 'no-store', signal: stop.signal });
     if (res.ok) {
       markOnline();
       return true;
     }
   } catch {
     // unreachable
+  } finally {
+    clearTimeout(minuteur);
   }
   markOffline();
   return false;
