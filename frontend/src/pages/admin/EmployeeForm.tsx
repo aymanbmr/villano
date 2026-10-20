@@ -30,7 +30,9 @@ export function EmployeeForm({ employee, onSaved, onClose }: Props) {
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     setError(null);
-    if (!firstName.trim() || !lastName.trim()) return setError('Prénom et nom sont obligatoires');
+    // Le nom de famille est facultatif : au café, l'employé est connu par son
+    // prénom, et l'exiger obligeait à inventer quelque chose.
+    if (!firstName.trim()) return setError('Le prénom est obligatoire');
     if (pin && !/^\d{4,6}$/.test(pin)) return setError('Le code PIN doit contenir 4 à 6 chiffres');
 
     const payload: EmployeePayload = {
@@ -73,8 +75,13 @@ export function EmployeeForm({ employee, onSaved, onClose }: Props) {
             />
           </label>
           <label className="field">
-            <span>Nom *</span>
-            <input className="input" value={lastName} onChange={(e) => setLastName(e.target.value)} />
+            <span>Nom</span>
+            <input
+              className="input"
+              value={lastName}
+              onChange={(e) => setLastName(e.target.value)}
+              placeholder="facultatif"
+            />
           </label>
 
           <label className="field">

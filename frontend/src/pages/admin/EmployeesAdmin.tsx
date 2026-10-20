@@ -6,6 +6,8 @@ import {
   formatPrice,
   type Employee,
   type EmployeeRole,
+  staffInitials,
+  staffName,
 } from '../../api';
 import { EmployeeForm } from './EmployeeForm';
 import { Icon } from '../../components/Icon';
@@ -62,7 +64,7 @@ export function EmployeesAdmin() {
 
   const remove = (e: Employee) => {
     const msg =
-      `Supprimer définitivement ${e.firstName} ${e.lastName} ?\n` +
+      `Supprimer définitivement ${staffName(e)} ?\n` +
       '(Pour un départ, préférez « Désactiver » afin de garder l’historique.)';
     if (!window.confirm(msg)) return;
     void run(() => adminApi.deleteEmployee(e.id));
@@ -133,14 +135,9 @@ export function EmployeesAdmin() {
             <tr key={e.id} className={e.isActive ? '' : 'is-hidden'}>
               <td>
                 <div className="product-cell">
-                  <div className="avatar">
-                    {e.firstName.charAt(0)}
-                    {e.lastName.charAt(0)}
-                  </div>
+                  <div className="avatar">{staffInitials(e)}</div>
                   <div>
-                    <div className="strong-text">
-                      {e.firstName} {e.lastName}
-                    </div>
+                    <div className="strong-text">{staffName(e)}</div>
                     {e.notes && <div className="muted">{e.notes}</div>}
                   </div>
                 </div>

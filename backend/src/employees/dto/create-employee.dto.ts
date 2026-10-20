@@ -16,9 +16,10 @@ export class CreateEmployeeDto {
   @MaxLength(60)
   firstName: string;
 
+  @IsOptional()
   @IsString()
   @MaxLength(60)
-  lastName: string;
+  lastName?: string;
 
   @IsIn(EMPLOYEE_ROLES)
   role: EmployeeRole;

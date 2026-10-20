@@ -2,6 +2,9 @@ import { useState, type FormEvent } from 'react';
 import { adminApi, ApiError, type Category, type Product, type ProductPayload } from '../../api';
 import { SHOW_STOCK } from '../../config';
 
+/** Valeur réservée du menu déroulant : elle ouvre le champ au lieu de choisir. */
+const NOUVELLE = '__nouvelle__';
+
 interface Props {
   product: Product | null; // null = create
   categories: Category[];
@@ -20,11 +23,33 @@ export function ProductForm({ product, categories, onSaved, onClose }: Props) {
   const [categoryId, setCategoryId] = useState<string>(
     product?.categoryId ? String(product.categoryId) : '',
   );
+  // Les catégories sont fournies par la page, mais on peut en créer une sans
+  // quitter le formulaire : sinon, ajouter un produit dans une catégorie qui
+  // n'existe pas encore obligeait à tout fermer et à revenir.
+  const [cats, setCats] = useState(categories);
+  // Nom en cours de saisie, ou null quand le champ est replié
+  const [nouvelleCategorie, setNouvelleCategorie] = useState<string | null>(null);
   const [isAvailable, setIsAvailable] = useState(product?.isAvailable ?? true);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(product?.imageUrl ?? null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const creerCategorie = async () => {
+    const nom = (nouvelleCategorie ?? '').trim();
+    if (!nom) return;
+    // Placée à la fin : l'ordre se règle dans l'encadré Catégories, où les
+    // flèches permettent de la remonter.
+    try {
+      const creee = await adminApi.createCategory({ name: nom, icon: null, sortOrder: cats.length });
+      setCats([...cats, creee]);
+      setCategoryId(String(creee.id));
+      setNouvelleCategorie(null);
+      setError(null);
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : 'Erreur réseau');
+    }
+  };
 
   const pickImage = (file: File | null) => {
     setImageFile(file);
@@ -85,16 +110,53 @@ export function ProductForm({ product, categories, onSaved, onClose }: Props) {
 
           <label className="field">
             <span>Catégorie</span>
-            <select className="input" value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
+            <select
+              className="input"
+              value={categoryId}
+              onChange={(e) =>
+                e.target.value === NOUVELLE
+                  ? setNouvelleCategorie('')
+                  : setCategoryId(e.target.value)
+              }
+            >
               <option value="">— Sans catégorie —</option>
-              {categories.map((c) => (
+              {cats.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.icon ? `${c.icon} ` : ''}
                   {c.name}
                 </option>
               ))}
+              <option value={NOUVELLE}>+ Nouvelle catégorie…</option>
             </select>
           </label>
+
+          {nouvelleCategorie !== null && (
+            <div className="field category-inline">
+              <input
+                className="input"
+                value={nouvelleCategorie}
+                onChange={(e) => setNouvelleCategorie(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault(); // sinon la touche enregistrerait le produit
+                    void creerCategorie();
+                  }
+                }}
+                placeholder="Nom de la catégorie"
+                autoFocus
+              />
+              <button type="button" className="btn btn-primary btn-sm" onClick={() => void creerCategorie()}>
+                Créer
+              </button>
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm"
+                onClick={() => setNouvelleCategorie(null)}
+              >
+                Annuler
+              </button>
+            </div>
+          )}
 
           {SHOW_STOCK && (
             <>

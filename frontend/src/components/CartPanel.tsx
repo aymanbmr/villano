@@ -7,6 +7,7 @@ import {
   type OrderType,
   type PaymentMethod,
   type StaffMember,
+  staffName,
 } from '../api';
 import type { CartLine } from '../useCart';
 import { Icon } from './Icon';
@@ -70,7 +71,7 @@ export function CartPanel({
       items: lines.map((l) => ({ productId: l.product.id, quantity: l.quantity })),
       orderType,
       waiterId: waiter?.id ?? 0,
-      waiterName: waiter ? `${waiter.firstName} ${waiter.lastName}` : null,
+      waiterName: waiter ? staffName(waiter) : null,
       note: note.trim() || undefined,
       payment: { paymentMethod },
     });
@@ -115,7 +116,7 @@ export function CartPanel({
           >
             <span className="row-icon">
               <Icon name="users" size={16} />
-              {waiter ? `${waiter.firstName} ${waiter.lastName}` : 'Choisir le serveur (obligatoire)'}
+              {waiter ? staffName(waiter) : 'Choisir le serveur (obligatoire)'}
             </span>
             <Icon name="edit" size={14} />
           </button>

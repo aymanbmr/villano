@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Employee } from '../employees/employee.entity.js';
+import { Employee, employeeName } from '../employees/employee.entity.js';
 import { AuthUser } from './auth.decorators.js';
 import { LoginDto } from './dto/login.dto.js';
 
@@ -39,7 +39,7 @@ export class AuthService {
       if (employee) {
         user = {
           id: employee.id,
-          name: `${employee.firstName} ${employee.lastName}`,
+          name: employeeName(employee),
           role: employee.role,
         };
       }

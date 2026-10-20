@@ -1513,6 +1513,18 @@ select.input {
   font-size: 12px;
 }
 
+/* Création d'une catégorie depuis le formulaire produit : sur une ligne, pour
+   qu'on la lise comme une parenthèse et non comme un champ de plus. */
+.category-inline {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.category-inline .input {
+  flex: 1;
+}
+
 /* Les deux fleches de reordonnancement, serrees l'une contre l'autre : on les
    lit alors comme un seul reglage, et non comme deux actions separees. */
 .category-list .btn-ghost.btn-sm {

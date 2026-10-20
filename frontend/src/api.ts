@@ -480,9 +480,21 @@ export interface Employee {
   createdAt: string;
 }
 
+/**
+ * Nom affiché. Le nom de famille étant facultatif — au café on connaît souvent
+ * l'employé par son seul prénom —, un `${firstName} ${lastName}` laissait une
+ * espace en trop derrière le prénom.
+ */
+export const staffName = (s: { firstName: string; lastName?: string | null }) =>
+  `${s.firstName} ${s.lastName ?? ''}`.trim();
+
+/** Initiales de la pastille : deux lettres, ou une seule faute de nom. */
+export const staffInitials = (s: { firstName: string; lastName?: string | null }) =>
+  (s.firstName.charAt(0) + (s.lastName?.charAt(0) ?? '')).toUpperCase();
+
 export interface EmployeePayload {
   firstName: string;
-  lastName: string;
+  lastName?: string;
   role: EmployeeRole;
   phone?: string | null;
   salary?: number | null;

@@ -19,7 +19,9 @@ export class Employee {
   @Column()
   firstName: string;
 
-  @Column()
+  // Facultatif : au café on connaît souvent l'employé par son seul prénom, et
+  // exiger un nom de famille obligeait à inventer quelque chose.
+  @Column({ default: '' })
   lastName: string;
 
   @Column({ type: 'text' })
@@ -52,3 +54,12 @@ export class Employee {
   @UpdateDateColumn()
   updatedAt: Date;
 }
+
+/**
+ * Le nom affiché sur un ticket ou dans une liste. Le nom de famille étant
+ * facultatif, un simple `${firstName} ${lastName}` laissait une espace en trop
+ * derrière le prénom — visible sur le ticket, juste assez pour qu'on la
+ * remarque sans comprendre d'où elle vient.
+ */
+export const employeeName = (e: { firstName: string; lastName?: string | null }) =>
+  `${e.firstName} ${e.lastName ?? ''}`.trim();

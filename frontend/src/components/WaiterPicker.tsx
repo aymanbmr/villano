@@ -1,4 +1,4 @@
-import { EMPLOYEE_ROLES, type EmployeeRole, type StaffMember } from '../api';
+import { EMPLOYEE_ROLES, staffInitials, staffName, type EmployeeRole, type StaffMember } from '../api';
 import { Icon } from './Icon';
 
 interface Props {
@@ -31,13 +31,8 @@ export function WaiterPicker({ staff, selectedId, onSelect, onClose }: Props) {
                     className={`staff-row${isSelected ? ' is-selected' : ''}`}
                     onClick={() => onSelect(s)}
                   >
-                    <span className="avatar">
-                      {s.firstName.charAt(0)}
-                      {s.lastName.charAt(0)}
-                    </span>
-                    <span className="staff-row-name">
-                      {s.firstName} {s.lastName}
-                    </span>
+                    <span className="avatar">{staffInitials(s)}</span>
+                    <span className="staff-row-name">{staffName(s)}</span>
                     <span className={`role-badge role-${s.role}`}>
                       {EMPLOYEE_ROLES[s.role as EmployeeRole] ?? s.role}
                     </span>

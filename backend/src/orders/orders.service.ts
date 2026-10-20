@@ -6,7 +6,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Between, DataSource, EntityManager, FindOptionsWhere, IsNull, MoreThanOrEqual, Repository } from 'typeorm';
-import { Employee } from '../employees/employee.entity.js';
+import { Employee, employeeName } from '../employees/employee.entity.js';
 import { Product } from '../products/product.entity.js';
 import { WorkDay } from '../work-days/work-day.entity.js';
 import { Order, OrderItem, OrderStatus } from './order.entity.js';
@@ -262,7 +262,7 @@ export class OrdersService {
       .getRepository(Employee)
       .findOneBy({ id: waiterId, isActive: true });
     if (!employee) throw new BadRequestException('Employé introuvable ou inactif');
-    return { id: employee.id, name: `${employee.firstName} ${employee.lastName}` };
+    return { id: employee.id, name: employeeName(employee) };
   }
 
   private async restoreStock(manager: EntityManager, order: Order) {

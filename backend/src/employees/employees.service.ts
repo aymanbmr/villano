@@ -1,7 +1,7 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Not, Repository } from 'typeorm';
-import { Employee } from './employee.entity.js';
+import { Employee, employeeName } from './employee.entity.js';
 import { CreateEmployeeDto } from './dto/create-employee.dto.js';
 import { UpdateEmployeeDto } from './dto/update-employee.dto.js';
 
@@ -55,7 +55,7 @@ export class EmployeesService {
     );
     if (clash) {
       throw new ConflictException(
-        `Ce code PIN est déjà utilisé par ${clash.firstName} ${clash.lastName}`,
+        `Ce code PIN est déjà utilisé par ${employeeName(clash)}`,
       );
     }
   }
