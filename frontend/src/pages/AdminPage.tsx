@@ -7,7 +7,7 @@ import { PrintersAdmin } from './admin/PrintersAdmin';
 import { UserMenu } from '../components/UserMenu';
 import { AppBar } from '../components/AppBar';
 import { Icon, type IconName } from '../components/Icon';
-import { SHOW_STOCK } from '../config';
+import { IS_ADMIN_APP, SHOW_STOCK } from '../config';
 
 export type AdminSection = 'dashboard' | 'ventes' | 'menu' | 'employes' | 'imprimantes';
 
@@ -27,10 +27,14 @@ export function AdminPage({ section }: { section: AdminSection }) {
         actions={
           <>
             <UserMenu />
-            <button type="button" className="btn btn-primary btn-sm" onClick={() => navigate('caisse')}>
-              <Icon name="back" size={16} />
-              <span className="hide-sm">Caisse</span>
-            </button>
+            {/* Pas de retour vers la caisse sur le téléphone du gérant : elle
+                n'y existe pas, et le bouton ne mènerait nulle part. */}
+            {!IS_ADMIN_APP && (
+              <button type="button" className="btn btn-primary btn-sm" onClick={() => navigate('caisse')}>
+                <Icon name="back" size={16} />
+                <span className="hide-sm">Caisse</span>
+              </button>
+            )}
           </>
         }
       >

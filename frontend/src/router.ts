@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { IS_ADMIN_APP } from './config';
 
 // Tiny hash router: #/caisse, #/admin/menu, #/admin/employes
 export type Route =
@@ -9,7 +10,9 @@ export type Route =
   | 'admin/employes'
   | 'admin/imprimantes';
 
-const DEFAULT_ROUTE: Route = 'caisse';
+// Sur le téléphone du gérant, l'application s'ouvre sur l'administration : la
+// caisse n'y est pas une page qu'on visite, c'est une page qui n'existe pas.
+const DEFAULT_ROUTE: Route = IS_ADMIN_APP ? 'admin/dashboard' : 'caisse';
 
 function parse(hash: string): Route {
   const path = hash.replace(/^#\/?/, '');

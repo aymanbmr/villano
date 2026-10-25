@@ -20,6 +20,13 @@ import { WebView, type WebViewNavigation } from 'react-native-webview';
 // this file only handles loading, errors, the Android back button and the
 // address of the caisse server.
 //
+// Cette application est celle du gérant : carte, ventes, employés. Pas la
+// caisse — on ne prend pas les commandes sur un téléphone pendant le service.
+// La coque le signale au site par son user agent (applicationNameForUserAgent
+// ci-dessous), et le site masque alors la caisse. Passer par l'adresse aurait
+// été plus simple mais fragile : le paramètre disparaît au premier
+// rechargement, et la caisse réapparaîtrait sans qu'on comprenne pourquoi.
+//
 // That address is editable inside the app: the café's PC gets a new IP from
 // the router now and then, and a hard-coded URL would leave the installed app
 // dead until someone rebuilds it.
@@ -162,6 +169,9 @@ export default function App() {
                 if (e.nativeEvent.statusCode >= 500) setError(`HTTP ${e.nativeEvent.statusCode}`);
               }}
               onNavigationStateChange={onNavigationStateChange}
+              // Ajouté à la fin du user agent : c'est ce que le site lit pour
+              // savoir qu'il tourne dans l'application du gérant.
+              applicationNameForUserAgent="VillanoAdmin"
               // Behave like an installed app, not a browser
               allowsBackForwardNavigationGestures
               pullToRefreshEnabled
