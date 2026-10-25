@@ -53,9 +53,10 @@ function serverPrintsKitchen(config: PrintingConfig | null) {
   return !!config && config.autoKitchen && config.kitchen.enabled && !!config.kitchen.host;
 }
 
-// Le bon de bar n'a pas d'imprimante a lui : il part du comptoir.
+// Le bon de bar n'a pas d'imprimante a lui : il part du comptoir, et n'est
+// pas soumis au reglage "envoi automatique" (qui ne concerne que la cuisine).
 function serverPrintsBarman(config: PrintingConfig | null) {
-  return !!config && config.autoKitchen && config.counter.enabled && !!config.counter.host;
+  return !!config && config.counter.enabled && !!config.counter.host;
 }
 
 // Waits for every image of the ticket to be ready (never longer than a

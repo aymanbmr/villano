@@ -380,13 +380,14 @@ export function PrintersAdmin() {
             checked={config.autoKitchen}
             onChange={(e) => patch({ autoKitchen: e.target.checked })}
           />
-          Imprimer les bons en cuisine et au bar dès qu’une commande est envoyée
+          Imprimer le bon en cuisine dès qu’une commande est envoyée
         </label>
         <p className="muted printer-hint">
           Les plats partent en cuisine. Les boissons (catégories réglées sur « Bar » dans
-          Catégories) sortent sur l’imprimante comptoir, en un petit ticket à part, juste après le
-          ticket principal. Les ajouts d’articles impriment seulement les nouvelles lignes. Si une
-          imprimante est éteinte, la commande est quand même enregistrée.
+          Catégories) sortent toujours sur l’imprimante comptoir, en un petit ticket à part juste
+          après le ticket principal — ce n’est pas soumis à ce réglage, qui ne concerne que la
+          cuisine. Les ajouts d’articles impriment seulement les nouvelles lignes. Si une imprimante
+          est éteinte, la commande est quand même enregistrée.
         </p>
 
         <label className="checkbox">

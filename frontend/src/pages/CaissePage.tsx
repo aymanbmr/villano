@@ -162,11 +162,12 @@ export function CaissePage() {
         setToast(`Articles ajoutés à la commande ${order.ticketNumber}`);
         // La cuisine et le bar n'ont besoin que des lignes qui viennent d'être
         // ajoutées. Le serveur les a déjà envoyées à l'imprimante réseau, d'où
-        // le repli ici.
+        // le repli ici. Le bon de cuisine suit la case à cocher ; le bon de
+        // bar, lui, part toujours dès qu'une boisson est ajoutée.
         const { kitchenItems, barItems } = splitByStation(addedLines(payload.items));
         if (autoPrintKitchen && !serverPrintsKitchen && kitchenItems.length)
           void print({ kind: 'kitchen', order: { ...order, items: kitchenItems } }, { server: false });
-        if (autoPrintKitchen && !serverPrintsBarman && barItems.length)
+        if (!serverPrintsBarman && barItems.length)
           void print({ kind: 'barman', order: { ...order, items: barItems } }, { server: false });
       } else {
         order = await api.createOrder(payload);
@@ -185,10 +186,12 @@ export function CaissePage() {
         // Si le serveur n'a pas d'imprimante, on le dit plutôt que d'ouvrir la
         // boîte du navigateur, qui figerait la caisse à chaque vente. Le bon de
         // bar partage l'imprimante comptoir avec lui : il attend que le ticket
-        // principal soit parti pour ne pas se mélanger sur le même rouleau.
+        // principal soit parti pour ne pas se mélanger sur le même rouleau. Il
+        // n'est pas soumis à la case à cocher : une boisson commandée doit
+        // toujours produire son bon, que le bon de cuisine soit coché ou non.
         void print({ kind: 'receipt', order }, { auto: true }).then(async (done) => {
           if (!done) setToast(`Commande ${order.ticketNumber} encaissée · ticket non imprimé`);
-          if (autoPrintKitchen && (priseHorsLigne || !serverPrintsBarman) && barItems.length)
+          if ((priseHorsLigne || !serverPrintsBarman) && barItems.length)
             await print({ kind: 'barman', order: { ...order, items: barItems } }, { auto: true });
         });
       }

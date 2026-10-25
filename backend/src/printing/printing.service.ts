@@ -175,14 +175,14 @@ export class PrintingService {
   }
 
   /**
-   * Un bon de cuisine pour les plats, un bon de bar pour les boissons : chacun
-   * ne part que si la commande contient au moins une ligne qui le concerne, et
-   * que l'envoi automatique correspondant est actif.
+   * Un bon de cuisine pour les plats, un bon de bar pour les boissons. Le bon
+   * de cuisine suit le réglage « envoi automatique » (le caissier peut le
+   * couper) ; le bon de bar, lui, part toujours dès qu'une boisson est
+   * commandée — ce n'est pas une option, le barman doit le voir.
    */
   async printAutoTickets(order: Order) {
     try {
       const config = await this.getConfig();
-      if (!config.autoKitchen) return;
 
       const productIds = [
         ...new Set(order.items.map((i) => i.productId).filter((id): id is number => id != null)),
@@ -197,7 +197,9 @@ export class PrintingService {
         (i) => !(i.productId != null && barIds.has(i.productId)),
       );
 
-      if (kitchenItems.length) this.printInBackground('kitchen', { ...order, items: kitchenItems });
+      if (config.autoKitchen && kitchenItems.length) {
+        this.printInBackground('kitchen', { ...order, items: kitchenItems });
+      }
       if (barItems.length) this.printInBackground('barman', { ...order, items: barItems });
     } catch (e) {
       this.logger.warn(`Impression automatique impossible : ${e instanceof Error ? e.message : e}`);
