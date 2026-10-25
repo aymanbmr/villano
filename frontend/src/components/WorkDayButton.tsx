@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { ApiError, formatPrice, printingApi, workDayApi, type WaiterTotals, type WorkDay } from '../api';
 import { Icon } from './Icon';
 import { canManageWorkDay, useSession } from '../auth';
 import { agentPresent, imprimerParAgent } from '../printing/agent';
 import { printerFor, renderClosingTicket } from '../printing/ticket';
+import { ClosingTicket, type ClosingTicketData } from './ClosingTicket';
 
 interface Props {
   workDay: WorkDay;
@@ -93,9 +94,21 @@ export function WorkDayButton({ workDay, pendingCount, onClosed }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [printing, setPrinting] = useState(false);
   const [printError, setPrintError] = useState<string | null>(null);
+  // Dernier recours : rendu hors-écran puis window.print(), comme les
+  // tickets de commande quand l'agent de la caisse n'est pas joignable.
+  const [browserTicket, setBrowserTicket] = useState<ClosingTicketData | null>(null);
   // A day coming straight from the opening call (or from the offline cache)
   // may not carry its summary yet: never crash the caisse for that.
   const summary = workDay.summary ?? { orders: 0, revenue: 0, cash: 0, card: 0, byWaiter: [] };
+
+  useEffect(() => {
+    if (!browserTicket) return;
+    const timer = setTimeout(() => {
+      window.print();
+      setTimeout(() => setBrowserTicket(null), 2000);
+    }, 150);
+    return () => clearTimeout(timer);
+  }, [browserTicket]);
 
   const confirmClose = async () => {
     setBusy(true);
@@ -123,18 +136,28 @@ export function WorkDayButton({ workDay, pendingCount, onClosed }: Props) {
         setPrintError("Aucune imprimante comptoir configurée (Admin → Imprimantes).");
         return;
       }
-      if (!(await agentPresent())) {
-        setPrintError('Agent d’impression introuvable sur ce poste.');
+      const workDayHeader = {
+        openedAt: workDay.openedAt,
+        closedAt: workDay.closedAt,
+        openedBy: workDay.openedBy,
+        closedBy: workDay.closedBy,
+      };
+      if (await agentPresent()) {
+        const payload = renderClosingTicket(workDayHeader, summary, config, printer);
+        const printed = await imprimerParAgent({ host: printer.host, port: printer.port, payload });
+        if (printed) return;
+        // L'agent est là mais l'imprimante a refusé : le navigateur peut
+        // tenter la même adresse, par exemple si c'est le pilote Windows qui
+        // la pilote plutôt que la connexion réseau de l'agent.
+      }
+      // Pas d'agent sur ce poste (ou l'imprimante a refusé) : comme pour les
+      // tickets de commande, le navigateur imprime lui-même si la caisse est
+      // réglée pour — sinon mieux vaut le dire que de prétendre avoir imprimé.
+      if (config.browserFallback) {
+        setBrowserTicket({ workDay: workDayHeader, summary });
         return;
       }
-      const payload = renderClosingTicket(
-        { openedAt: workDay.openedAt, closedAt: workDay.closedAt, openedBy: workDay.openedBy, closedBy: workDay.closedBy },
-        summary,
-        config,
-        printer,
-      );
-      const printed = await imprimerParAgent({ host: printer.host, port: printer.port, payload });
-      if (!printed) setPrintError('L’imprimante n’a pas répondu.');
+      setPrintError('Agent d’impression introuvable sur ce poste.');
     } catch {
       setPrintError('Erreur réseau, réessayez.');
     } finally {
@@ -240,6 +263,8 @@ export function WorkDayButton({ workDay, pendingCount, onClosed }: Props) {
           </div>,
           document.body,
         )}
+
+      {browserTicket && <ClosingTicket workDay={browserTicket.workDay} summary={browserTicket.summary} />}
     </>
   );
 }
