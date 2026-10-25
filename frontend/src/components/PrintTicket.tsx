@@ -4,7 +4,8 @@ import { RESTAURANT } from '../config';
 import { LOGO_MARK_DATA_URL } from '../assets/logoMark';
 
 // kitchen: what to prepare (big quantities, no prices)
-// barman:  same, for the bar — drink lines only
+// barman:  small slip for the bar — drink lines, ticket number and time only,
+//          printed on the counter printer right after the main ticket
 // bill:    the pre-bill handed to the customer before paying
 // receipt: proof of payment after the order is settled
 export type TicketKind = 'kitchen' | 'bill' | 'receipt' | 'barman';
@@ -38,9 +39,32 @@ const formatDate = (iso: string) =>
 // app (caisse or admin) and keeps only this ticket, so it must never sit
 // inside the page being hidden.
 export function PrintTicket({ kind, order, wifi }: PrintJob) {
+  // Le ticket du bar n'est pas un vrai ticket : juste la commande et
+  // l'heure, sur la même imprimante que le ticket principal.
+  if (kind === 'barman') {
+    return createPortal(
+      <div className="ticket-print ticket-barman">
+        <div className="tp-row">
+          <span>N° {order.ticketNumber}</span>
+          <span>{formatDate(order.createdAt)}</span>
+        </div>
+        <div className="tp-rule" />
+        <ul className="tp-lines tp-lines-kitchen">
+          {order.items.map((i) => (
+            <li key={i.id}>
+              <span className="tp-qty">{i.quantity} ×</span>
+              <span>{i.productName}</span>
+            </li>
+          ))}
+        </ul>
+      </div>,
+      document.body,
+    );
+  }
+
   const paid = kind === 'receipt' && order.status === 'paid';
-  // Kitchen and bar slips are preparation tickets: big print, no prices.
-  const prep = kind === 'kitchen' || kind === 'barman';
+  // Le bon de cuisine est un ticket de préparation : gros caractères, sans prix.
+  const prep = kind === 'kitchen';
 
   return createPortal(
     <div className={`ticket-print ticket-${kind}`}>

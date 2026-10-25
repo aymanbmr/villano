@@ -30,7 +30,7 @@ export function refreshPrintingConfig() {
 /** Une imprimante est-elle renseignee, quel que soit le ticket ? */
 function imprimanteRenseignee(config: PrintingConfig | null) {
   if (!config) return false;
-  return !!printerFor('receipt', config) || !!printerFor('kitchen', config) || !!printerFor('barman', config);
+  return !!printerFor('receipt', config) || !!printerFor('kitchen', config);
 }
 
 /** Au-delà, on considère que le serveur n'imprimera pas et on bascule. */
@@ -46,15 +46,16 @@ const SERVER_PRINT_TIMEOUT = 2500;
 function serveurPeutImprimer(config: PrintingConfig | null) {
   if (!config) return false;
   const branchee = (p: { enabled: boolean; host: string }) => p.enabled && !!p.host;
-  return branchee(config.counter) || branchee(config.kitchen) || branchee(config.barman);
+  return branchee(config.counter) || branchee(config.kitchen);
 }
 
 function serverPrintsKitchen(config: PrintingConfig | null) {
   return !!config && config.autoKitchen && config.kitchen.enabled && !!config.kitchen.host;
 }
 
+// Le bon de bar n'a pas d'imprimante a lui : il part du comptoir.
 function serverPrintsBarman(config: PrintingConfig | null) {
-  return !!config && config.autoKitchen && config.barman.enabled && !!config.barman.host;
+  return !!config && config.autoKitchen && config.counter.enabled && !!config.counter.host;
 }
 
 // Waits for every image of the ticket to be ready (never longer than a

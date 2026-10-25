@@ -599,7 +599,7 @@ export const statsApi = {
 
 // ---------- Printing (network thermal printers, driven by the server) ----------
 
-export type PrinterId = 'counter' | 'kitchen' | 'barman';
+export type PrinterId = 'counter' | 'kitchen';
 export type TicketKind = 'kitchen' | 'bill' | 'receipt' | 'barman';
 
 export interface PrinterConfig {
@@ -620,7 +620,6 @@ export interface FoundPrinter {
 export interface PrintingConfig {
   counter: PrinterConfig;
   kitchen: PrinterConfig;
-  barman: PrinterConfig;
   autoKitchen: boolean;
   /** Laisse le navigateur imprimer quand le serveur ne le peut pas. */
   browserFallback?: boolean;

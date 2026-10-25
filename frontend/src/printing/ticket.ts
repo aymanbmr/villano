@@ -26,14 +26,18 @@ export function renderTicket(
   config: PrintingConfig,
   printer: PrinterConfig,
 ): Uint8Array {
+  // Le bon de bar n'est pas un vrai ticket : juste la commande et l'heure,
+  // imprime a la suite du ticket principal sur la meme imprimante comptoir.
+  if (kind === 'barman') return renderBarman(order, printer);
+
   const doc = new EscPos(printer.width);
   const paid = kind === 'receipt' && order.status === 'paid';
   const where = order.orderType === 'takeaway' ? 'À emporter' : 'Sur place';
-  // Bons de cuisine et de bar : grosses lettres, sans prix, lus a distance.
-  const prep = kind === 'kitchen' || kind === 'barman';
+  // Le bon de cuisine est un ticket de preparation : grosses lettres, sans prix.
+  const prep = kind === 'kitchen';
 
   doc.align('center');
-  // Le logo n'a sa place que sur le ticket du client : en préparation il ne
+  // Le logo n'a sa place que sur le ticket du client : en cuisine il ne
   // ferait que consommer du papier et retarder le bon.
   if (!prep) {
     doc.image(LOGO_BITMAP, LOGO_WIDTH, LOGO_HEIGHT).feed(1);
@@ -47,15 +51,7 @@ export function renderTicket(
       .line(config.header.phone);
   }
   doc.bold(false).rule().bold(true);
-  doc.line(
-    kind === 'kitchen'
-      ? 'BON DE CUISINE'
-      : kind === 'barman'
-        ? 'BON DE BAR'
-        : kind === 'bill'
-          ? 'ADDITION'
-          : 'TICKET DE CAISSE',
-  );
+  doc.line(kind === 'kitchen' ? 'BON DE CUISINE' : kind === 'bill' ? 'ADDITION' : 'TICKET DE CAISSE');
   doc.bold(false).align('left');
   doc.row(`N° ${order.ticketNumber}`, dateTime(paid && order.paidAt ? order.paidAt : order.createdAt));
 
@@ -105,12 +101,26 @@ export function renderTicket(
 }
 
 /**
+ * Petit ticket pour le barman : juste la commande et l'heure, rien d'autre.
+ * Il sort de l'imprimante comptoir, a la suite du ticket principal.
+ */
+function renderBarman(order: Order, printer: PrinterConfig): Uint8Array {
+  const doc = new EscPos(printer.width);
+  doc.row(`N° ${order.ticketNumber}`, dateTime(order.createdAt));
+  doc.rule();
+  doc.size(2).bold(true);
+  for (const line of order.items) doc.line(`${line.quantity} x ${line.productName}`);
+  doc.size(1).bold(false);
+  return doc.cut().build();
+}
+
+/**
  * Page d'essai, jumelle de testDoc() cote serveur. Elle sert a verifier qu'une
  * adresse repond et que les accents sortent correctement, avant de confier de
  * vraies ventes a l'imprimante.
  */
 export function renderTestPage(
-  id: 'counter' | 'kitchen' | 'barman',
+  id: 'counter' | 'kitchen',
   config: PrintingConfig,
   printer: PrinterConfig,
 ): Uint8Array {
@@ -122,7 +132,7 @@ export function renderTestPage(
     .line(config.header.name)
     .size(1)
     .bold(false)
-    .line(id === 'kitchen' ? 'Imprimante CUISINE' : id === 'barman' ? 'Imprimante BAR' : 'Imprimante COMPTOIR')
+    .line(id === 'kitchen' ? 'Imprimante CUISINE' : 'Imprimante COMPTOIR')
     .line(dateTime(new Date()))
     .rule()
     .align('left')
@@ -187,9 +197,7 @@ export function printerFor(kind: TicketKind, config: PrintingConfig): PrinterCon
     if (utilisable(config.kitchen)) return config.kitchen;
     return utilisable(config.counter) ? config.counter : null;
   }
-  if (kind === 'barman') {
-    if (utilisable(config.barman)) return config.barman;
-    return utilisable(config.counter) ? config.counter : null;
-  }
+  // Le bon de bar n'a pas d'imprimante a lui : il part du comptoir, comme le
+  // ticket principal qu'il suit.
   return utilisable(config.counter) ? config.counter : null;
 }

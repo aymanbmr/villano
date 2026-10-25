@@ -12,7 +12,7 @@ import { PrintJob } from './print-job.entity.js';
 import { arpTable, discoverPrinters, findByMac, reachable, type FoundPrinter } from './discovery.js';
 
 export type TicketKind = 'kitchen' | 'bill' | 'receipt' | 'barman';
-export type PrinterId = 'counter' | 'kitchen' | 'barman';
+export type PrinterId = 'counter' | 'kitchen';
 
 export interface PrinterConfig {
   enabled: boolean;
@@ -31,8 +31,6 @@ export interface PrinterConfig {
 export interface PrintingConfig {
   counter: PrinterConfig;
   kitchen: PrinterConfig;
-  /** Pour les boissons : BON DE BAR, imprimé automatiquement comme celui de cuisine. */
-  barman: PrinterConfig;
   /** Send the kitchen ticket by itself as soon as an order is sent. */
   autoKitchen: boolean;
   header: {
@@ -67,7 +65,6 @@ const SETTINGS_KEY = 'printing';
 const DEFAULTS: PrintingConfig = {
   counter: { enabled: false, host: '', port: 9100, width: 48, mac: '' },
   kitchen: { enabled: false, host: '', port: 9100, width: 48, mac: '' },
-  barman: { enabled: false, host: '', port: 9100, width: 48, mac: '' },
   autoKitchen: true,
   header: {
     name: 'Villano',
@@ -141,7 +138,6 @@ export class PrintingService {
         ...saved,
         counter: { ...DEFAULTS.counter, ...saved.counter },
         kitchen: { ...DEFAULTS.kitchen, ...saved.kitchen },
-        barman: { ...DEFAULTS.barman, ...saved.barman },
         header: { ...DEFAULTS.header, ...saved.header },
       };
     } catch {
@@ -156,7 +152,6 @@ export class PrintingService {
       ...patch,
       counter: { ...current.counter, ...patch.counter },
       kitchen: { ...current.kitchen, ...patch.kitchen },
-      barman: { ...current.barman, ...patch.barman },
       header: { ...current.header, ...patch.header },
     };
     await this.settings.save({ key: SETTINGS_KEY, value: JSON.stringify(next) });
@@ -168,15 +163,15 @@ export class PrintingService {
   }
 
   /**
-   * Which printer a ticket goes to: kitchen tickets to the kitchen, bar
-   * tickets to the bar, the rest to the counter. Small places run a single
-   * printer, so an unconfigured kitchen or bar falls back to the counter
-   * rather than not printing at all.
+   * Which printer a ticket goes to: kitchen tickets to the kitchen, the rest
+   * — including the bar slip, which has no printer of its own and comes out
+   * alongside the receipt — to the counter. Small places run a single
+   * printer, so an unconfigured kitchen falls back to the counter rather
+   * than not printing at all.
    */
   printerFor(kind: TicketKind, config: PrintingConfig): PrinterId {
-    if (kind === 'kitchen') return PrintingService.usable(config.kitchen) ? 'kitchen' : 'counter';
-    if (kind === 'barman') return PrintingService.usable(config.barman) ? 'barman' : 'counter';
-    return 'counter';
+    if (kind !== 'kitchen') return 'counter';
+    return PrintingService.usable(config.kitchen) ? 'kitchen' : 'counter';
   }
 
   /**
@@ -371,7 +366,7 @@ export class PrintingService {
       .line(config.header.name)
       .size(1)
       .bold(false)
-      .line(id === 'kitchen' ? 'Imprimante CUISINE' : id === 'barman' ? 'Imprimante BAR' : 'Imprimante COMPTOIR')
+      .line(id === 'kitchen' ? 'Imprimante CUISINE' : 'Imprimante COMPTOIR')
       .line(dateTime(new Date()))
       .rule()
       .align('left')
@@ -394,15 +389,19 @@ export class PrintingService {
   // -------------------------------------------------------------------------
 
   private render(kind: TicketKind, order: Order, config: PrintingConfig, printer: PrinterConfig) {
+    // Le bon de bar n'est pas un vrai ticket : juste la commande et l'heure,
+    // imprime a la suite du ticket principal sur la meme imprimante comptoir.
+    if (kind === 'barman') return this.renderBarman(order, printer);
+
     const doc = new EscPos(printer.width);
     const paid = kind === 'receipt' && order.status === 'paid';
     const where = order.orderType === 'takeaway' ? 'À emporter' : 'Sur place';
-    // Kitchen and bar slips are preparation tickets: big print, no prices, no
-    // logo — they are read across the pass, not handed to the customer.
-    const prep = kind === 'kitchen' || kind === 'barman';
+    // Le bon de cuisine est un ticket de preparation : gros caracteres, sans
+    // prix, sans logo — il est lu a distance, pas remis au client.
+    const prep = kind === 'kitchen';
 
     doc.align('center');
-    // Le logo n'a sa place que sur le ticket du client : en préparation il ne
+    // Le logo n'a sa place que sur le ticket du client : en cuisine il ne
     // ferait que consommer du papier et retarder le bon.
     if (!prep) {
       doc.image(LOGO_BITMAP, LOGO_WIDTH, LOGO_HEIGHT).feed(1);
@@ -416,19 +415,11 @@ export class PrintingService {
         .line(config.header.phone);
     }
     doc.bold(false).rule().bold(true);
-    doc.line(
-      kind === 'kitchen'
-        ? 'BON DE CUISINE'
-        : kind === 'barman'
-          ? 'BON DE BAR'
-          : kind === 'bill'
-            ? 'ADDITION'
-            : 'TICKET DE CAISSE',
-    );
+    doc.line(kind === 'kitchen' ? 'BON DE CUISINE' : kind === 'bill' ? 'ADDITION' : 'TICKET DE CAISSE');
     doc.bold(false).align('left');
     doc.row(`N° ${order.ticketNumber}`, dateTime(paid && order.paidAt ? order.paidAt : order.createdAt));
 
-    // La préparation a besoin de la table en gros caractères, lue a distance
+    // La cuisine a besoin de la table en gros caracteres, lue a distance
     if (prep) doc.size(2).bold(true).line(where).size(1).bold(false);
     else doc.bold(true).line(where).bold(false);
     if (order.waiterName) doc.line(`Serveur : ${order.waiterName}`);
@@ -468,6 +459,20 @@ export class PrintingService {
       doc.line(config.header.footer);
     }
 
+    return doc.cut().build();
+  }
+
+  /**
+   * Petit ticket pour le barman : juste la commande et l'heure, rien d'autre.
+   * Il sort de l'imprimante comptoir, a la suite du ticket principal.
+   */
+  private renderBarman(order: Order, printer: PrinterConfig) {
+    const doc = new EscPos(printer.width);
+    doc.row(`N° ${order.ticketNumber}`, dateTime(order.createdAt));
+    doc.rule();
+    doc.size(2).bold(true);
+    for (const line of order.items) doc.line(`${line.quantity} x ${line.productName}`);
+    doc.size(1).bold(false);
     return doc.cut().build();
   }
 

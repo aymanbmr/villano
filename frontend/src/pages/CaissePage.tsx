@@ -181,13 +181,15 @@ export function CaissePage() {
         const { kitchenItems, barItems } = splitByStation(order.items);
         if (autoPrintKitchen && (priseHorsLigne || !serverPrintsKitchen) && kitchenItems.length)
           void print({ kind: 'kitchen', order: { ...order, items: kitchenItems } }, { auto: true });
-        if (autoPrintKitchen && (priseHorsLigne || !serverPrintsBarman) && barItems.length)
-          void print({ kind: 'barman', order: { ...order, items: barItems } }, { auto: true });
         // L'encaissement vaut ticket : il sort sans que personne ne le demande.
         // Si le serveur n'a pas d'imprimante, on le dit plutôt que d'ouvrir la
-        // boîte du navigateur, qui figerait la caisse à chaque vente.
-        void print({ kind: 'receipt', order }, { auto: true }).then((done) => {
+        // boîte du navigateur, qui figerait la caisse à chaque vente. Le bon de
+        // bar partage l'imprimante comptoir avec lui : il attend que le ticket
+        // principal soit parti pour ne pas se mélanger sur le même rouleau.
+        void print({ kind: 'receipt', order }, { auto: true }).then(async (done) => {
           if (!done) setToast(`Commande ${order.ticketNumber} encaissée · ticket non imprimé`);
+          if (autoPrintKitchen && (priseHorsLigne || !serverPrintsBarman) && barItems.length)
+            await print({ kind: 'barman', order: { ...order, items: barItems } }, { auto: true });
         });
       }
       cart.clear();
