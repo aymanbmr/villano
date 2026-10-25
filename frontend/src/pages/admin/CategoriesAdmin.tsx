@@ -17,11 +17,13 @@ const fail = (e: unknown) => (e instanceof ApiError ? e.message : 'Erreur résea
 export function CategoriesAdmin({ categories, productCount, onChanged, onError }: Props) {
   const [newName, setNewName] = useState('');
   const [newIcon, setNewIcon] = useState('');
+  const [newStation, setNewStation] = useState<'kitchen' | 'bar'>('kitchen');
   const [editingId, setEditingId] = useState<number | null>(null);
   // which field the icon picker is open for: 'new', a category id, or null
   const [picking, setPicking] = useState<'new' | number | null>(null);
   const [editName, setEditName] = useState('');
   const [editIcon, setEditIcon] = useState('');
+  const [editStation, setEditStation] = useState<'kitchen' | 'bar'>('kitchen');
   const [moving, setMoving] = useState(false);
 
   /**
@@ -60,9 +62,11 @@ export function CategoriesAdmin({ categories, productCount, onChanged, onError }
         name: newName.trim(),
         icon: newIcon.trim() || null,
         sortOrder: categories.length,
+        station: newStation,
       });
       setNewName('');
       setNewIcon('');
+      setNewStation('kitchen');
       onChanged();
     } catch (e) {
       onError(fail(e));
@@ -73,12 +77,17 @@ export function CategoriesAdmin({ categories, productCount, onChanged, onError }
     setEditingId(c.id);
     setEditName(c.name);
     setEditIcon(c.icon ?? '');
+    setEditStation(c.station);
   };
 
   const saveEdit = async () => {
     if (editingId === null || !editName.trim()) return;
     try {
-      await adminApi.updateCategory(editingId, { name: editName.trim(), icon: editIcon.trim() || null });
+      await adminApi.updateCategory(editingId, {
+        name: editName.trim(),
+        icon: editIcon.trim() || null,
+        station: editStation,
+      });
       setEditingId(null);
       onChanged();
     } catch (e) {
@@ -126,6 +135,15 @@ export function CategoriesAdmin({ categories, productCount, onChanged, onError }
                 onKeyDown={(e) => e.key === 'Enter' && saveEdit()}
                 autoFocus
               />
+              <select
+                className="input category-station"
+                value={editStation}
+                onChange={(e) => setEditStation(e.target.value as 'kitchen' | 'bar')}
+                title="Où imprime le bon de préparation pour cette catégorie"
+              >
+                <option value="kitchen">Cuisine</option>
+                <option value="bar">Bar</option>
+              </select>
               <button type="button" className="btn btn-primary btn-sm" onClick={saveEdit}>
                 OK
               </button>
@@ -138,6 +156,7 @@ export function CategoriesAdmin({ categories, productCount, onChanged, onError }
               <span className="category-name">
                 <CategoryIcon icon={c.icon} size={15} />
                 {c.name}
+                {c.station === 'bar' && <span className="category-station-badge">Bar</span>}
                 <span className="muted"> · {productCount(c.id)}</span>
               </span>
               <button
@@ -192,6 +211,15 @@ export function CategoriesAdmin({ categories, productCount, onChanged, onError }
           onKeyDown={(e) => e.key === 'Enter' && add()}
           placeholder="Nouvelle catégorie"
         />
+        <select
+          className="input category-station"
+          value={newStation}
+          onChange={(e) => setNewStation(e.target.value as 'kitchen' | 'bar')}
+          title="Où imprime le bon de préparation pour cette catégorie"
+        >
+          <option value="kitchen">Cuisine</option>
+          <option value="bar">Bar</option>
+        </select>
         <button type="button" className="btn btn-primary btn-sm" onClick={add}>
           Ajouter
         </button>

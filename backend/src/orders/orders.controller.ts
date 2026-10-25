@@ -57,30 +57,27 @@ export class OrdersController {
   @Post()
   async create(@Body() dto: CreateOrderDto) {
     const order = await this.orders.create(dto);
-    // The kitchen ticket prints by itself at the pass, so a waiter taking an
-    // order from a phone never has to walk to a printer. A printer that is
-    // off or unplugged must not fail the order, hence the background call.
-    const config = await this.printing.getConfig();
-    if (config.autoKitchen) this.printing.printInBackground('kitchen', order);
+    // Le bon de cuisine et/ou le bon de bar partent d'eux-memes a la prise de
+    // commande, un serveur prenant commande depuis son telephone n'ayant pas
+    // a marcher jusqu'a une imprimante. Une imprimante eteinte ne doit jamais
+    // faire echouer la commande, d'ou l'appel en arriere-plan.
+    void this.printing.printAutoTickets(order);
     return order;
   }
 
   @Post(':id/items')
   async addItems(@Param('id', ParseIntPipe) id: number, @Body() dto: AddItemsDto) {
     const order = await this.orders.addItems(id, dto);
-    // Only the lines just added are of any use to the kitchen: the saved
+    // Only the lines just added are of any use to the kitchen/bar: the saved
     // order carries the running totals, the ticket carries the new quantities.
-    const config = await this.printing.getConfig();
-    if (config.autoKitchen) {
-      const quantities = new Map<number, number>();
-      for (const line of dto.items) {
-        quantities.set(line.productId, (quantities.get(line.productId) ?? 0) + line.quantity);
-      }
-      const added = order.items
-        .filter((item) => item.productId !== null && quantities.has(item.productId))
-        .map((item) => ({ ...item, quantity: quantities.get(item.productId!)! }));
-      this.printing.printInBackground('kitchen', { ...order, items: added });
+    const quantities = new Map<number, number>();
+    for (const line of dto.items) {
+      quantities.set(line.productId, (quantities.get(line.productId) ?? 0) + line.quantity);
     }
+    const added = order.items
+      .filter((item) => item.productId !== null && quantities.has(item.productId))
+      .map((item) => ({ ...item, quantity: quantities.get(item.productId!)! }));
+    void this.printing.printAutoTickets({ ...order, items: added });
     return order;
   }
 

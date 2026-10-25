@@ -1543,6 +1543,23 @@ select.input {
   padding: 7px 10px;
 }
 
+.category-station {
+  flex: 0 0 auto;
+  width: auto;
+}
+
+.category-station-badge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--accent-soft, #eef2ff);
+  color: var(--accent, #4338ca);
+  font-size: 11px;
+  font-weight: 600;
+  vertical-align: middle;
+}
+
 .input-icon {
   width: 48px;
   flex-shrink: 0;

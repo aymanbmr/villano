@@ -4,9 +4,10 @@ import { RESTAURANT } from '../config';
 import { LOGO_MARK_DATA_URL } from '../assets/logoMark';
 
 // kitchen: what to prepare (big quantities, no prices)
+// barman:  same, for the bar — drink lines only
 // bill:    the pre-bill handed to the customer before paying
 // receipt: proof of payment after the order is settled
-export type TicketKind = 'kitchen' | 'bill' | 'receipt';
+export type TicketKind = 'kitchen' | 'bill' | 'receipt' | 'barman';
 
 export interface PrintJob {
   kind: TicketKind;
@@ -18,6 +19,7 @@ export interface PrintJob {
 
 const TITLES: Record<TicketKind, string> = {
   kitchen: 'BON DE CUISINE',
+  barman: 'BON DE BAR',
   bill: 'ADDITION',
   receipt: 'TICKET DE CAISSE',
 };
@@ -37,13 +39,15 @@ const formatDate = (iso: string) =>
 // inside the page being hidden.
 export function PrintTicket({ kind, order, wifi }: PrintJob) {
   const paid = kind === 'receipt' && order.status === 'paid';
+  // Kitchen and bar slips are preparation tickets: big print, no prices.
+  const prep = kind === 'kitchen' || kind === 'barman';
 
   return createPortal(
     <div className={`ticket-print ticket-${kind}`}>
       <div className="tp-center">
         <img className="tp-logo" src={LOGO_MARK_DATA_URL} alt="" width={38} height={52} />
         <div className="tp-brand">{RESTAURANT.name}</div>
-        {kind !== 'kitchen' && (
+        {!prep && (
           <>
             <div>{RESTAURANT.subtitle}</div>
             <div>{RESTAURANT.address}</div>
@@ -62,7 +66,7 @@ export function PrintTicket({ kind, order, wifi }: PrintJob) {
       {order.waiterName && <div>Serveur : {order.waiterName}</div>}
       <div className="tp-rule" />
 
-      {kind === 'kitchen' ? (
+      {prep ? (
         <ul className="tp-lines tp-lines-kitchen">
           {order.items.map((i) => (
             <li key={i.id}>
@@ -86,7 +90,7 @@ export function PrintTicket({ kind, order, wifi }: PrintJob) {
 
       {order.note && <div className="tp-note">Note : {order.note}</div>}
 
-      {kind !== 'kitchen' && (
+      {!prep && (
         <>
           <div className="tp-rule" />
           {order.discount > 0 && (

@@ -228,7 +228,7 @@ export function CartPanel({
             onChange={(e) => onToggleAutoPrint(e.target.checked)}
           />
           <Icon name="printer" size={14} />
-          Imprimer le bon de cuisine à l’envoi
+          Imprimer les bons de cuisine et de bar à l’envoi
         </label>
 
         {error && <div className="error">{error}</div>}

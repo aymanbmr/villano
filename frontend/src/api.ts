@@ -31,6 +31,7 @@ export interface Category {
   name: string;
   icon: string | null;
   sortOrder: number;
+  station: 'kitchen' | 'bar';
 }
 
 export interface Product {
@@ -454,6 +455,7 @@ export interface CategoryPayload {
   name: string;
   icon?: string | null;
   sortOrder?: number;
+  station?: 'kitchen' | 'bar';
 }
 
 export const EMPLOYEE_ROLES = {
@@ -597,8 +599,8 @@ export const statsApi = {
 
 // ---------- Printing (network thermal printers, driven by the server) ----------
 
-export type PrinterId = 'counter' | 'kitchen';
-export type TicketKind = 'kitchen' | 'bill' | 'receipt';
+export type PrinterId = 'counter' | 'kitchen' | 'barman';
+export type TicketKind = 'kitchen' | 'bill' | 'receipt' | 'barman';
 
 export interface PrinterConfig {
   enabled: boolean;
@@ -618,6 +620,7 @@ export interface FoundPrinter {
 export interface PrintingConfig {
   counter: PrinterConfig;
   kitchen: PrinterConfig;
+  barman: PrinterConfig;
   autoKitchen: boolean;
   /** Laisse le navigateur imprimer quand le serveur ne le peut pas. */
   browserFallback?: boolean;

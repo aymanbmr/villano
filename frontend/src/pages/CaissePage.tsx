@@ -73,6 +73,7 @@ export function CaissePage() {
     jobs: printJobs,
     print,
     serverPrintsKitchen,
+    serverPrintsBarman,
     autoKitchen: autoPrintKitchen,
     setAutoKitchen,
   } = usePrint();
@@ -140,6 +141,17 @@ export function CaissePage() {
       };
     });
 
+  // Les boissons partent au bar, le reste en cuisine : chaque ligne suit la
+  // station de la catégorie de son produit (par défaut la cuisine).
+  const splitByStation = (items: Order['items']) => {
+    const barIds = new Set(
+      products.filter((p) => p.category?.station === 'bar').map((p) => p.id),
+    );
+    const barItems = items.filter((i) => i.productId != null && barIds.has(i.productId));
+    const kitchenItems = items.filter((i) => !(i.productId != null && barIds.has(i.productId)));
+    return { kitchenItems, barItems };
+  };
+
   const sendOrder = async (payload: CreateOrderPayload) => {
     setBusy(true);
     setCartError(null);
@@ -148,13 +160,14 @@ export function CaissePage() {
       if (appendTo) {
         order = await api.addItems(appendTo.id, payload.items);
         setToast(`Articles ajoutés à la commande ${order.ticketNumber}`);
-        // The kitchen only needs the lines that were just added. The server
-        // already sent them to the network printer, so this is the fallback.
-        if (autoPrintKitchen && !serverPrintsKitchen)
-          void print(
-            { kind: 'kitchen', order: { ...order, items: addedLines(payload.items) } },
-            { server: false },
-          );
+        // La cuisine et le bar n'ont besoin que des lignes qui viennent d'être
+        // ajoutées. Le serveur les a déjà envoyées à l'imprimante réseau, d'où
+        // le repli ici.
+        const { kitchenItems, barItems } = splitByStation(addedLines(payload.items));
+        if (autoPrintKitchen && !serverPrintsKitchen && kitchenItems.length)
+          void print({ kind: 'kitchen', order: { ...order, items: kitchenItems } }, { server: false });
+        if (autoPrintKitchen && !serverPrintsBarman && barItems.length)
+          void print({ kind: 'barman', order: { ...order, items: barItems } }, { server: false });
       } else {
         order = await api.createOrder(payload);
         const where = orderLabel(order);
@@ -165,8 +178,11 @@ export function CaissePage() {
         // sortirait pas du tout. Un identifiant negatif signale cette commande
         // restee locale.
         const priseHorsLigne = order.id < 0;
-        if (autoPrintKitchen && (priseHorsLigne || !serverPrintsKitchen))
-          void print({ kind: 'kitchen', order }, { auto: true });
+        const { kitchenItems, barItems } = splitByStation(order.items);
+        if (autoPrintKitchen && (priseHorsLigne || !serverPrintsKitchen) && kitchenItems.length)
+          void print({ kind: 'kitchen', order: { ...order, items: kitchenItems } }, { auto: true });
+        if (autoPrintKitchen && (priseHorsLigne || !serverPrintsBarman) && barItems.length)
+          void print({ kind: 'barman', order: { ...order, items: barItems } }, { auto: true });
         // L'encaissement vaut ticket : il sort sans que personne ne le demande.
         // Si le serveur n'a pas d'imprimante, on le dit plutôt que d'ouvrir la
         // boîte du navigateur, qui figerait la caisse à chaque vente.

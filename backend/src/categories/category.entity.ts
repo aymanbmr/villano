@@ -14,4 +14,9 @@ export class Category {
 
   @Column({ default: 0 })
   sortOrder: number;
+
+  // Which printer an order line for this category goes to automatically:
+  // food to the kitchen, drinks to the bar.
+  @Column({ type: 'text', default: 'kitchen' })
+  station: 'kitchen' | 'bar';
 }

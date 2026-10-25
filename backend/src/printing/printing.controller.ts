@@ -42,7 +42,9 @@ export class PrintingController {
   @AdminOnly()
   @Post('test/:printer')
   test(@Param('printer') printer: PrinterId) {
-    return this.printing.testPage(printer === 'kitchen' ? 'kitchen' : 'counter');
+    return this.printing.testPage(
+      printer === 'kitchen' ? 'kitchen' : printer === 'barman' ? 'barman' : 'counter',
+    );
   }
 
   // A new token invalidates whatever the relay currently holds — used once,

@@ -183,13 +183,16 @@ export function PrintersAdmin() {
     patch({
       [id]: { ...config[id], host: printer.host, port: printer.port, mac: printer.mac, enabled: true },
     } as Partial<PrintingConfig>);
-    setMessage(
-      `${printer.host} affectée ${id === 'kitchen' ? 'à la cuisine' : 'au comptoir'}. Enregistrez, puis imprimez une page de test.`,
-    );
+    const ou = id === 'kitchen' ? 'à la cuisine' : id === 'barman' ? 'au bar' : 'au comptoir';
+    setMessage(`${printer.host} affectée ${ou}. Enregistrez, puis imprimez une page de test.`);
   };
 
   const assignedTo = (host: string) =>
-    [config.counter.host === host && 'comptoir', config.kitchen.host === host && 'cuisine']
+    [
+      config.counter.host === host && 'comptoir',
+      config.kitchen.host === host && 'cuisine',
+      config.barman.host === host && 'bar',
+    ]
       .filter(Boolean)
       .join(' et ');
 
@@ -198,7 +201,7 @@ export function PrintersAdmin() {
     setBusy(true);
     setError(null);
     setMessage(null);
-    const ou = id === 'kitchen' ? 'cuisine' : 'comptoir';
+    const ou = id === 'kitchen' ? 'cuisine' : id === 'barman' ? 'bar' : 'comptoir';
     try {
       await printingApi.save(config);
       refreshPrintingConfig();
@@ -206,7 +209,7 @@ export function PrintersAdmin() {
       // L'agent de la caisse d'abord : un serveur hébergé ne peut pas joindre
       // une imprimante du café, son essai échouerait forcément. Ici c'est la
       // machine devant l'employé qui envoie, donc le test dit la vérité.
-      const imprimante = id === 'kitchen' ? config.kitchen : config.counter;
+      const imprimante = id === 'kitchen' ? config.kitchen : id === 'barman' ? config.barman : config.counter;
       if (imprimante.host && (await agentPresent())) {
         const sorti = await imprimerParAgent({
           host: imprimante.host,
@@ -339,6 +342,13 @@ export function PrintersAdmin() {
                     >
                       Cuisine
                     </button>
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm"
+                      onClick={() => assign('barman', printer)}
+                    >
+                      Bar
+                    </button>
                   </div>
                 </li>
               );
@@ -370,6 +380,14 @@ export function PrintersAdmin() {
           onChange={(p) => patch({ kitchen: { ...config.kitchen, ...p } })}
           onTest={() => test('kitchen')}
         />
+        <PrinterCard
+          title="Bar"
+          hint="Bons de préparation pour les boissons, sans les prix."
+          value={config.barman}
+          busy={busy}
+          onChange={(p) => patch({ barman: { ...config.barman, ...p } })}
+          onTest={() => test('barman')}
+        />
       </div>
 
       <section className="card">
@@ -380,11 +398,12 @@ export function PrintersAdmin() {
             checked={config.autoKitchen}
             onChange={(e) => patch({ autoKitchen: e.target.checked })}
           />
-          Imprimer le bon en cuisine dès qu’une commande est envoyée
+          Imprimer les bons en cuisine et au bar dès qu’une commande est envoyée
         </label>
         <p className="muted printer-hint">
-          Les ajouts d’articles impriment seulement les nouvelles lignes. Si l’imprimante est
-          éteinte, la commande est quand même enregistrée.
+          Chaque ligne part vers l’imprimante de sa catégorie (réglée dans Catégories) : les plats
+          en cuisine, les boissons au bar. Les ajouts d’articles impriment seulement les nouvelles
+          lignes. Si une imprimante est éteinte, la commande est quand même enregistrée.
         </p>
 
         <label className="checkbox">

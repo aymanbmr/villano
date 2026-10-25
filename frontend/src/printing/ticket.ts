@@ -29,15 +29,17 @@ export function renderTicket(
   const doc = new EscPos(printer.width);
   const paid = kind === 'receipt' && order.status === 'paid';
   const where = order.orderType === 'takeaway' ? 'À emporter' : 'Sur place';
+  // Bons de cuisine et de bar : grosses lettres, sans prix, lus a distance.
+  const prep = kind === 'kitchen' || kind === 'barman';
 
   doc.align('center');
-  // Le logo n'a sa place que sur le ticket du client : en cuisine il ne ferait
-  // que consommer du papier et retarder le bon.
-  if (kind !== 'kitchen') {
+  // Le logo n'a sa place que sur le ticket du client : en préparation il ne
+  // ferait que consommer du papier et retarder le bon.
+  if (!prep) {
     doc.image(LOGO_BITMAP, LOGO_WIDTH, LOGO_HEIGHT).feed(1);
   }
   doc.bold(true).size(2).line(config.header.name).size(1);
-  if (kind !== 'kitchen') {
+  if (!prep) {
     doc
       .bold(false)
       .line(config.header.subtitle)
@@ -45,17 +47,24 @@ export function renderTicket(
       .line(config.header.phone);
   }
   doc.bold(false).rule().bold(true);
-  doc.line(kind === 'kitchen' ? 'BON DE CUISINE' : kind === 'bill' ? 'ADDITION' : 'TICKET DE CAISSE');
+  doc.line(
+    kind === 'kitchen'
+      ? 'BON DE CUISINE'
+      : kind === 'barman'
+        ? 'BON DE BAR'
+        : kind === 'bill'
+          ? 'ADDITION'
+          : 'TICKET DE CAISSE',
+  );
   doc.bold(false).align('left');
   doc.row(`N° ${order.ticketNumber}`, dateTime(paid && order.paidAt ? order.paidAt : order.createdAt));
 
-  // La cuisine lit le bon a distance, d'ou les gros caracteres
-  if (kind === 'kitchen') doc.size(2).bold(true).line(where).size(1).bold(false);
+  if (prep) doc.size(2).bold(true).line(where).size(1).bold(false);
   else doc.bold(true).line(where).bold(false);
   if (order.waiterName) doc.line(`Serveur : ${order.waiterName}`);
   doc.rule();
 
-  if (kind === 'kitchen') {
+  if (prep) {
     doc.size(2).bold(true);
     for (const line of order.items) doc.line(`${line.quantity} x ${line.productName}`);
     doc.size(1).bold(false);
@@ -67,7 +76,7 @@ export function renderTicket(
 
   if (order.note) doc.rule().bold(true).line(`Note : ${order.note}`).bold(false);
 
-  if (kind !== 'kitchen') {
+  if (!prep) {
     doc.rule();
     if (order.discount > 0) {
       doc.row('Sous-total', money(order.subtotal)).row('Remise', `- ${money(order.discount)}`);
@@ -101,7 +110,7 @@ export function renderTicket(
  * vraies ventes a l'imprimante.
  */
 export function renderTestPage(
-  id: 'counter' | 'kitchen',
+  id: 'counter' | 'kitchen' | 'barman',
   config: PrintingConfig,
   printer: PrinterConfig,
 ): Uint8Array {
@@ -113,7 +122,7 @@ export function renderTestPage(
     .line(config.header.name)
     .size(1)
     .bold(false)
-    .line(id === 'kitchen' ? 'Imprimante CUISINE' : 'Imprimante COMPTOIR')
+    .line(id === 'kitchen' ? 'Imprimante CUISINE' : id === 'barman' ? 'Imprimante BAR' : 'Imprimante COMPTOIR')
     .line(dateTime(new Date()))
     .rule()
     .align('left')
@@ -176,6 +185,10 @@ export function printerFor(kind: TicketKind, config: PrintingConfig): PrinterCon
   const utilisable = (p: PrinterConfig) => p.enabled && !!p.host;
   if (kind === 'kitchen') {
     if (utilisable(config.kitchen)) return config.kitchen;
+    return utilisable(config.counter) ? config.counter : null;
+  }
+  if (kind === 'barman') {
+    if (utilisable(config.barman)) return config.barman;
     return utilisable(config.counter) ? config.counter : null;
   }
   return utilisable(config.counter) ? config.counter : null;

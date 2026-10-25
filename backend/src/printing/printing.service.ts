@@ -1,17 +1,18 @@
 import { BadRequestException, Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { randomBytes } from 'node:crypto';
 import { Socket } from 'node:net';
 import { Setting } from '../settings/setting.entity.js';
 import { Order } from '../orders/order.entity.js';
+import { Product } from '../products/product.entity.js';
 import { EscPos } from './escpos.js';
 import { LOGO_BITMAP, LOGO_HEIGHT, LOGO_WIDTH } from './logo.js';
 import { PrintJob } from './print-job.entity.js';
 import { arpTable, discoverPrinters, findByMac, reachable, type FoundPrinter } from './discovery.js';
 
-export type TicketKind = 'kitchen' | 'bill' | 'receipt';
-export type PrinterId = 'counter' | 'kitchen';
+export type TicketKind = 'kitchen' | 'bill' | 'receipt' | 'barman';
+export type PrinterId = 'counter' | 'kitchen' | 'barman';
 
 export interface PrinterConfig {
   enabled: boolean;
@@ -30,6 +31,8 @@ export interface PrinterConfig {
 export interface PrintingConfig {
   counter: PrinterConfig;
   kitchen: PrinterConfig;
+  /** Pour les boissons : BON DE BAR, imprimé automatiquement comme celui de cuisine. */
+  barman: PrinterConfig;
   /** Send the kitchen ticket by itself as soon as an order is sent. */
   autoKitchen: boolean;
   header: {
@@ -64,6 +67,7 @@ const SETTINGS_KEY = 'printing';
 const DEFAULTS: PrintingConfig = {
   counter: { enabled: false, host: '', port: 9100, width: 48, mac: '' },
   kitchen: { enabled: false, host: '', port: 9100, width: 48, mac: '' },
+  barman: { enabled: false, host: '', port: 9100, width: 48, mac: '' },
   autoKitchen: true,
   header: {
     name: 'Villano',
@@ -97,6 +101,7 @@ export class PrintingService {
   constructor(
     @InjectRepository(Setting) private readonly settings: Repository<Setting>,
     @InjectRepository(PrintJob) private readonly jobs: Repository<PrintJob>,
+    @InjectRepository(Product) private readonly products: Repository<Product>,
   ) {}
 
   /**
@@ -136,6 +141,7 @@ export class PrintingService {
         ...saved,
         counter: { ...DEFAULTS.counter, ...saved.counter },
         kitchen: { ...DEFAULTS.kitchen, ...saved.kitchen },
+        barman: { ...DEFAULTS.barman, ...saved.barman },
         header: { ...DEFAULTS.header, ...saved.header },
       };
     } catch {
@@ -150,6 +156,7 @@ export class PrintingService {
       ...patch,
       counter: { ...current.counter, ...patch.counter },
       kitchen: { ...current.kitchen, ...patch.kitchen },
+      barman: { ...current.barman, ...patch.barman },
       header: { ...current.header, ...patch.header },
     };
     await this.settings.save({ key: SETTINGS_KEY, value: JSON.stringify(next) });
@@ -161,13 +168,45 @@ export class PrintingService {
   }
 
   /**
-   * Which printer a ticket goes to: kitchen tickets to the kitchen, the rest to
-   * the counter. Small places run a single printer, so a kitchen ticket falls
-   * back to the counter rather than not printing at all.
+   * Which printer a ticket goes to: kitchen tickets to the kitchen, bar
+   * tickets to the bar, the rest to the counter. Small places run a single
+   * printer, so an unconfigured kitchen or bar falls back to the counter
+   * rather than not printing at all.
    */
   printerFor(kind: TicketKind, config: PrintingConfig): PrinterId {
-    if (kind !== 'kitchen') return 'counter';
-    return PrintingService.usable(config.kitchen) ? 'kitchen' : 'counter';
+    if (kind === 'kitchen') return PrintingService.usable(config.kitchen) ? 'kitchen' : 'counter';
+    if (kind === 'barman') return PrintingService.usable(config.barman) ? 'barman' : 'counter';
+    return 'counter';
+  }
+
+  /**
+   * Un bon de cuisine pour les plats, un bon de bar pour les boissons : chacun
+   * ne part que si la commande contient au moins une ligne qui le concerne, et
+   * que l'envoi automatique correspondant est actif.
+   */
+  async printAutoTickets(order: Order) {
+    try {
+      const config = await this.getConfig();
+      if (!config.autoKitchen) return;
+
+      const productIds = [
+        ...new Set(order.items.map((i) => i.productId).filter((id): id is number => id != null)),
+      ];
+      const products = productIds.length
+        ? await this.products.find({ where: { id: In(productIds) } })
+        : [];
+      const barIds = new Set(products.filter((p) => p.category?.station === 'bar').map((p) => p.id));
+
+      const barItems = order.items.filter((i) => i.productId != null && barIds.has(i.productId));
+      const kitchenItems = order.items.filter(
+        (i) => !(i.productId != null && barIds.has(i.productId)),
+      );
+
+      if (kitchenItems.length) this.printInBackground('kitchen', { ...order, items: kitchenItems });
+      if (barItems.length) this.printInBackground('barman', { ...order, items: barItems });
+    } catch (e) {
+      this.logger.warn(`Impression automatique impossible : ${e instanceof Error ? e.message : e}`);
+    }
   }
 
   async print(kind: TicketKind, order: Order): Promise<{ printed: boolean; printer: PrinterId; reason?: string }> {
@@ -332,7 +371,7 @@ export class PrintingService {
       .line(config.header.name)
       .size(1)
       .bold(false)
-      .line(id === 'kitchen' ? 'Imprimante CUISINE' : 'Imprimante COMPTOIR')
+      .line(id === 'kitchen' ? 'Imprimante CUISINE' : id === 'barman' ? 'Imprimante BAR' : 'Imprimante COMPTOIR')
       .line(dateTime(new Date()))
       .rule()
       .align('left')
@@ -358,15 +397,18 @@ export class PrintingService {
     const doc = new EscPos(printer.width);
     const paid = kind === 'receipt' && order.status === 'paid';
     const where = order.orderType === 'takeaway' ? 'À emporter' : 'Sur place';
+    // Kitchen and bar slips are preparation tickets: big print, no prices, no
+    // logo — they are read across the pass, not handed to the customer.
+    const prep = kind === 'kitchen' || kind === 'barman';
 
     doc.align('center');
-    // Le logo n'a sa place que sur le ticket du client : en cuisine il ne
+    // Le logo n'a sa place que sur le ticket du client : en préparation il ne
     // ferait que consommer du papier et retarder le bon.
-    if (kind !== 'kitchen') {
+    if (!prep) {
       doc.image(LOGO_BITMAP, LOGO_WIDTH, LOGO_HEIGHT).feed(1);
     }
     doc.bold(true).size(2).line(config.header.name).size(1);
-    if (kind !== 'kitchen') {
+    if (!prep) {
       doc
         .bold(false)
         .line(config.header.subtitle)
@@ -374,17 +416,25 @@ export class PrintingService {
         .line(config.header.phone);
     }
     doc.bold(false).rule().bold(true);
-    doc.line(kind === 'kitchen' ? 'BON DE CUISINE' : kind === 'bill' ? 'ADDITION' : 'TICKET DE CAISSE');
+    doc.line(
+      kind === 'kitchen'
+        ? 'BON DE CUISINE'
+        : kind === 'barman'
+          ? 'BON DE BAR'
+          : kind === 'bill'
+            ? 'ADDITION'
+            : 'TICKET DE CAISSE',
+    );
     doc.bold(false).align('left');
     doc.row(`N° ${order.ticketNumber}`, dateTime(paid && order.paidAt ? order.paidAt : order.createdAt));
 
-    // The kitchen needs the table in big characters, it is read across the pass
-    if (kind === 'kitchen') doc.size(2).bold(true).line(where).size(1).bold(false);
+    // La préparation a besoin de la table en gros caractères, lue a distance
+    if (prep) doc.size(2).bold(true).line(where).size(1).bold(false);
     else doc.bold(true).line(where).bold(false);
     if (order.waiterName) doc.line(`Serveur : ${order.waiterName}`);
     doc.rule();
 
-    if (kind === 'kitchen') {
+    if (prep) {
       doc.size(2).bold(true);
       for (const line of order.items) doc.line(`${line.quantity} x ${line.productName}`);
       doc.size(1).bold(false);
@@ -396,7 +446,7 @@ export class PrintingService {
 
     if (order.note) doc.rule().bold(true).line(`Note : ${order.note}`).bold(false);
 
-    if (kind !== 'kitchen') {
+    if (!prep) {
       doc.rule();
       if (order.discount > 0) {
         doc.row('Sous-total', money(order.subtotal)).row('Remise', `- ${money(order.discount)}`);
