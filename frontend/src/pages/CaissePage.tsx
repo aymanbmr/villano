@@ -67,17 +67,7 @@ export function CaissePage() {
   const [toast, setToast] = useState<string | null>(null);
   const [paidOrder, setPaidOrder] = useState<Order | null>(null);
   const cart = useCart();
-  // Le réglage vit sur le serveur : la caisse, le téléphone d'un serveur et
-  // l'écran d'administration montrent et commandent le même interrupteur.
-  const {
-    jobs: printJobs,
-    print,
-    serverPrintsKitchen,
-    serverPrintsBarman,
-    autoKitchen: autoPrintKitchen,
-    setAutoKitchen,
-  } = usePrint();
-  const toggleAutoPrint = (value: boolean) => void setAutoKitchen(value);
+  const { jobs: printJobs, print, serverPrintsKitchen, serverPrintsBarman } = usePrint();
 
   const load = useCallback(async () => {
     try {
@@ -162,10 +152,11 @@ export function CaissePage() {
         setToast(`Articles ajoutés à la commande ${order.ticketNumber}`);
         // La cuisine et le bar n'ont besoin que des lignes qui viennent d'être
         // ajoutées. Le serveur les a déjà envoyées à l'imprimante réseau, d'où
-        // le repli ici. Le bon de cuisine suit la case à cocher ; le bon de
-        // bar, lui, part toujours dès qu'une boisson est ajoutée.
+        // le repli ici. Ni l'un ni l'autre ne depend d'une case a cocher : un
+        // caissier qui oublie ne doit jamais etre la raison pour laquelle un
+        // bon ne sort pas.
         const { kitchenItems, barItems } = splitByStation(addedLines(payload.items));
-        if (autoPrintKitchen && !serverPrintsKitchen && kitchenItems.length)
+        if (!serverPrintsKitchen && kitchenItems.length)
           void print({ kind: 'kitchen', order: { ...order, items: kitchenItems } }, { server: false });
         if (!serverPrintsBarman && barItems.length)
           void print({ kind: 'barman', order: { ...order, items: barItems } }, { server: false });
@@ -180,15 +171,13 @@ export function CaissePage() {
         // restee locale.
         const priseHorsLigne = order.id < 0;
         const { kitchenItems, barItems } = splitByStation(order.items);
-        if (autoPrintKitchen && (priseHorsLigne || !serverPrintsKitchen) && kitchenItems.length)
+        if ((priseHorsLigne || !serverPrintsKitchen) && kitchenItems.length)
           void print({ kind: 'kitchen', order: { ...order, items: kitchenItems } }, { auto: true });
         // L'encaissement vaut ticket : il sort sans que personne ne le demande.
         // Si le serveur n'a pas d'imprimante, on le dit plutôt que d'ouvrir la
         // boîte du navigateur, qui figerait la caisse à chaque vente. Le bon de
         // bar partage l'imprimante comptoir avec lui : il attend que le ticket
-        // principal soit parti pour ne pas se mélanger sur le même rouleau. Il
-        // n'est pas soumis à la case à cocher : une boisson commandée doit
-        // toujours produire son bon, que le bon de cuisine soit coché ou non.
+        // principal soit parti pour ne pas se mélanger sur le même rouleau.
         void print({ kind: 'receipt', order }, { auto: true }).then(async (done) => {
           if (!done) setToast(`Commande ${order.ticketNumber} encaissée · ticket non imprimé`);
           if ((priseHorsLigne || !serverPrintsBarman) && barItems.length)
@@ -374,8 +363,6 @@ export function CaissePage() {
               onClear={cart.clear}
               onSubmit={sendOrder}
               onCancelAppend={cancelAppend}
-              autoPrintKitchen={autoPrintKitchen}
-              onToggleAutoPrint={toggleAutoPrint}
             />
           ) : (
             <OpenOrders

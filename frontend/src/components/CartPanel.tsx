@@ -29,8 +29,6 @@ interface Props {
   onClear: () => void;
   onSubmit: (payload: CreateOrderPayload) => void;
   onCancelAppend: () => void;
-  autoPrintKitchen: boolean;
-  onToggleAutoPrint: (value: boolean) => void;
 }
 
 export function CartPanel({
@@ -45,8 +43,6 @@ export function CartPanel({
   onClear,
   onSubmit,
   onCancelAppend,
-  autoPrintKitchen,
-  onToggleAutoPrint,
 }: Props) {
   const session = useSession();
   // A waiter logged in on their own profile is necessarily the one
@@ -220,16 +216,6 @@ export function CartPanel({
             <span>{formatPrice(subtotal)}</span>
           </div>
         </div>
-
-        <label className="checkbox">
-          <input
-            type="checkbox"
-            checked={autoPrintKitchen}
-            onChange={(e) => onToggleAutoPrint(e.target.checked)}
-          />
-          <Icon name="printer" size={14} />
-          Imprimer le bon de cuisine à l’envoi
-        </label>
 
         {error && <div className="error">{error}</div>}
         {waiterMissing && lines.length > 0 && (

@@ -50,11 +50,10 @@ function serveurPeutImprimer(config: PrintingConfig | null) {
 }
 
 function serverPrintsKitchen(config: PrintingConfig | null) {
-  return !!config && config.autoKitchen && config.kitchen.enabled && !!config.kitchen.host;
+  return !!config && config.kitchen.enabled && !!config.kitchen.host;
 }
 
-// Le bon de bar n'a pas d'imprimante a lui : il part du comptoir, et n'est
-// pas soumis au reglage "envoi automatique" (qui ne concerne que la cuisine).
+// Le bon de bar n'a pas d'imprimante a lui : il part du comptoir.
 function serverPrintsBarman(config: PrintingConfig | null) {
   return !!config && config.counter.enabled && !!config.counter.host;
 }
@@ -92,17 +91,12 @@ export function usePrint() {
   // Le serveur a-t-il deja montre qu'il n'atteignait pas l'imprimante ?
   const serveurAEchoueRef = useRef(false);
   const [browserFallback, setBrowserFallback] = useState(false);
-  // Whether a kitchen slip should go out at all. The switch lives on the
-  // server rather than in each browser, so the caisse, a waiter's phone and
-  // the admin screen cannot disagree about it.
-  const [autoKitchen, setAutoKitchenState] = useState(true);
 
   useEffect(() => {
     let alive = true;
     void loadPrintingConfig().then(async (config) => {
       if (!alive) return;
       if (config) {
-        setAutoKitchenState(config.autoKitchen);
         setBrowserFallback(config.browserFallback === true);
       }
       // Quand l'agent local repond, il imprime tout : le serveur sort de la
@@ -124,19 +118,6 @@ export function usePrint() {
   // fonction a chaque changement.
   const browserFallbackRef = useRef(false);
   browserFallbackRef.current = browserFallback;
-
-  const setAutoKitchen = useCallback(async (value: boolean) => {
-    setAutoKitchenState(value); // l'interface répond tout de suite
-    try {
-      const saved = await printingApi.setAutoKitchen(value);
-      refreshPrintingConfig();
-      setHandledByServer(serverPrintsKitchen(saved));
-      setHandledByServerBarman(serverPrintsBarman(saved));
-      serveurImprimeRef.current = serveurPeutImprimer(saved);
-    } catch {
-      setAutoKitchenState(!value); // le serveur n'a pas suivi : on revient
-    }
-  }, []);
 
   // Tous les tickets en attente partent d'un seul envoi, separes par un saut
   // de page. Les imprimer l'un apres l'autre obligeait a attendre la fin du
@@ -251,7 +232,5 @@ export function usePrint() {
     print,
     serverPrintsKitchen: handledByServer,
     serverPrintsBarman: handledByServerBarman,
-    autoKitchen,
-    setAutoKitchen,
   };
 }

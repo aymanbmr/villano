@@ -1,5 +1,5 @@
-import { Body, Controller, Delete, Get, Headers, Param, ParseIntPipe, Patch, Post, Put, Query } from '@nestjs/common';
-import { AdminOnly, CAISSE_ROLES, Public, Roles } from '../auth/auth.decorators.js';
+import { Body, Controller, Delete, Get, Headers, Param, ParseIntPipe, Post, Put, Query } from '@nestjs/common';
+import { AdminOnly, Public } from '../auth/auth.decorators.js';
 import { OrdersService } from '../orders/orders.service.js';
 import { PrintingService, type PrinterId, type PrintingConfig, type TicketKind } from './printing.service.js';
 
@@ -20,17 +20,6 @@ export class PrintingController {
   @Put('config')
   save(@Body() patch: Partial<PrintingConfig>) {
     return this.printing.setConfig(patch);
-  }
-
-  // Whether kitchen slips go out at all. Operational rather than sensitive, so
-  // the caisse may flip it without being admin — the printer addresses, which
-  // are, stay behind the full config endpoint. Also open to "serveur" : when
-  // there is no cashier on shift, a waiter running the till alone still needs
-  // to control whether their own orders print in the kitchen.
-  @Roles(...CAISSE_ROLES, 'serveur')
-  @Patch('auto-kitchen')
-  autoKitchen(@Body('enabled') enabled: boolean) {
-    return this.printing.setConfig({ autoKitchen: Boolean(enabled) });
   }
 
   // Sweeps the networks of this PC for anything answering on the printing port,

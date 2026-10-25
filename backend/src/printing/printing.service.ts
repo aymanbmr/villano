@@ -31,8 +31,6 @@ export interface PrinterConfig {
 export interface PrintingConfig {
   counter: PrinterConfig;
   kitchen: PrinterConfig;
-  /** Send the kitchen ticket by itself as soon as an order is sent. */
-  autoKitchen: boolean;
   header: {
     name: string;
     subtitle: string;
@@ -65,7 +63,6 @@ const SETTINGS_KEY = 'printing';
 const DEFAULTS: PrintingConfig = {
   counter: { enabled: false, host: '', port: 9100, width: 48, mac: '' },
   kitchen: { enabled: false, host: '', port: 9100, width: 48, mac: '' },
-  autoKitchen: true,
   header: {
     name: 'Villano',
     subtitle: 'Café & Restaurant',
@@ -175,15 +172,13 @@ export class PrintingService {
   }
 
   /**
-   * Un bon de cuisine pour les plats, un bon de bar pour les boissons. Le bon
-   * de cuisine suit le réglage « envoi automatique » (le caissier peut le
-   * couper) ; le bon de bar, lui, part toujours dès qu'une boisson est
-   * commandée — ce n'est pas une option, le barman doit le voir.
+   * Un bon de cuisine pour les plats, un bon de bar pour les boissons : chacun
+   * part de lui-même dès que la commande contient une ligne qui le concerne.
+   * Ce n'est pas une option — un caissier qui oublie de cocher une case ne
+   * doit jamais être la raison pour laquelle un bon ne sort pas.
    */
   async printAutoTickets(order: Order) {
     try {
-      const config = await this.getConfig();
-
       const productIds = [
         ...new Set(order.items.map((i) => i.productId).filter((id): id is number => id != null)),
       ];
@@ -197,9 +192,7 @@ export class PrintingService {
         (i) => !(i.productId != null && barIds.has(i.productId)),
       );
 
-      if (config.autoKitchen && kitchenItems.length) {
-        this.printInBackground('kitchen', { ...order, items: kitchenItems });
-      }
+      if (kitchenItems.length) this.printInBackground('kitchen', { ...order, items: kitchenItems });
       if (barItems.length) this.printInBackground('barman', { ...order, items: barItems });
     } catch (e) {
       this.logger.warn(`Impression automatique impossible : ${e instanceof Error ? e.message : e}`);

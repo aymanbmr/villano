@@ -620,7 +620,6 @@ export interface FoundPrinter {
 export interface PrintingConfig {
   counter: PrinterConfig;
   kitchen: PrinterConfig;
-  autoKitchen: boolean;
   /** Laisse le navigateur imprimer quand le serveur ne le peut pas. */
   browserFallback?: boolean;
   header: {
@@ -660,9 +659,6 @@ export const printingApi = {
   discover: () => request<FoundPrinter[]>('/printing/discover', undefined, LONG_TIMEOUT),
   regenerateRelayToken: async (): Promise<string> =>
     (await request<{ relayToken: string }>('/printing/relay/token', { method: 'POST' })).relayToken,
-  // Accessible à la caisse, contrairement au reste de la configuration
-  setAutoKitchen: (enabled: boolean) =>
-    request<PrintingConfig>('/printing/auto-kitchen', json('PATCH', { enabled })),
   print: (kind: TicketKind, orderId: number) =>
     request<PrintResult>(`/printing/${kind}/${orderId}`, { method: 'POST' }),
 };
