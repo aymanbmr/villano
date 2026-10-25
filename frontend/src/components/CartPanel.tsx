@@ -13,6 +13,7 @@ import type { CartLine } from '../useCart';
 import { Icon } from './Icon';
 import { SHOW_STOCK } from '../config';
 import { WaiterPicker } from './WaiterPicker';
+import { useSession } from '../auth';
 
 interface Props {
   lines: CartLine[];
@@ -47,6 +48,13 @@ export function CartPanel({
   autoPrintKitchen,
   onToggleAutoPrint,
 }: Props) {
+  const session = useSession();
+  // A waiter logged in on their own profile is necessarily the one
+  // responsible for what they ring up: no point asking them to pick
+  // themselves from a list. A cashier or manager still chooses, since they
+  // take orders on behalf of whichever waiter served the table.
+  const self = session?.user.role === 'serveur' ? staff.find((s) => s.id === session.user.id) : undefined;
+
   const [orderType, setOrderType] = useState<OrderType>('dine_in');
   const [waiter, setWaiter] = useState<StaffMember | null>(null);
   const [note, setNote] = useState('');
@@ -61,17 +69,24 @@ export function CartPanel({
       setNote('');
       setPaymentMethod('cash');
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lines.length]);
 
+  // `self` depends on the staff list, which can still be loading on the very
+  // first renders: falling back to it here (rather than only at init/reset)
+  // means a serveur's own profile always wins once it arrives, even if that
+  // happens after the cart's header state was first set.
+  const effectiveWaiter = self ?? waiter;
+
   // Every order answers to a waiter, who collects for it (also enforced by the API)
-  const waiterMissing = !appendTo && !waiter;
+  const waiterMissing = !appendTo && !effectiveWaiter;
 
   const submit = () =>
     onSubmit({
       items: lines.map((l) => ({ productId: l.product.id, quantity: l.quantity })),
       orderType,
-      waiterId: waiter?.id ?? 0,
-      waiterName: waiter ? staffName(waiter) : null,
+      waiterId: effectiveWaiter?.id ?? 0,
+      waiterName: effectiveWaiter ? staffName(effectiveWaiter) : null,
       note: note.trim() || undefined,
       payment: { paymentMethod },
     });
@@ -109,17 +124,19 @@ export function CartPanel({
               À emporter
             </button>
           </div>
-          <button
-            type="button"
-            className={`table-select-btn${waiterMissing && lines.length > 0 ? ' is-invalid' : ''}${waiter ? '' : ' is-empty'}`}
-            onClick={() => setWaiterPickerOpen(true)}
-          >
-            <span className="row-icon">
-              <Icon name="users" size={16} />
-              {waiter ? staffName(waiter) : 'Choisir le serveur (obligatoire)'}
-            </span>
-            <Icon name="edit" size={14} />
-          </button>
+          {!self && (
+            <button
+              type="button"
+              className={`table-select-btn${waiterMissing && lines.length > 0 ? ' is-invalid' : ''}${waiter ? '' : ' is-empty'}`}
+              onClick={() => setWaiterPickerOpen(true)}
+            >
+              <span className="row-icon">
+                <Icon name="users" size={16} />
+                {waiter ? staffName(waiter) : 'Choisir le serveur (obligatoire)'}
+              </span>
+              <Icon name="edit" size={14} />
+            </button>
+          )}
           <div className="segmented">
             <button
               type="button"

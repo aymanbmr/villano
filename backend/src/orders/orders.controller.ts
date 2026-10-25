@@ -12,6 +12,7 @@ import {
 } from '@nestjs/common';
 import { OrdersService } from './orders.service.js';
 import { PrintingService } from '../printing/printing.service.js';
+import { AdminOnly } from '../auth/auth.decorators.js';
 import {
   AddItemsDto,
   CreateOrderDto,
@@ -107,6 +108,9 @@ export class OrdersController {
     return this.orders.pay(id, dto);
   }
 
+  // Reserved to the admin/manager: a waiter or cashier who typed a wrong sale
+  // must not be able to erase it from the day's takings themselves.
+  @AdminOnly()
   @Patch(':id/cancel')
   cancel(@Param('id', ParseIntPipe) id: number) {
     return this.orders.cancel(id);

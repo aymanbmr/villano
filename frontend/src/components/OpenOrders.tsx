@@ -11,6 +11,7 @@ import { PaymentForm } from './PaymentForm';
 import { Icon } from './Icon';
 import { WaiterPicker } from './WaiterPicker';
 import type { TicketKind } from './PrintTicket';
+import { isAdmin, useSession } from '../auth';
 
 interface Props {
   orders: Order[];
@@ -132,6 +133,10 @@ function OrderDetail({
   // Local copy of the editable note; saved on blur
   const [note, setNote] = useState(order.note ?? '');
   const [waiterPickerOpen, setWaiterPickerOpen] = useState(false);
+  // Annuler efface une vente de la caisse du jour : réservé à l'admin/manager
+  // (le serveur ou le caissier qui l'a tapée ne peut pas l'effacer lui-même).
+  const session = useSession();
+  const mayCancel = isAdmin(session?.user);
 
   useEffect(() => {
     setNote(order.note ?? '');
@@ -148,6 +153,10 @@ function OrderDetail({
 
   const changeQty = (itemId: number, quantity: number) => {
     if (quantity <= 0 && order.items.length === 1) {
+      if (!mayCancel) {
+        window.alert('Retirer le dernier article annulerait la commande : réservé à l’admin/manager.');
+        return;
+      }
       if (window.confirm(`Retirer le dernier article supprime la commande ${order.ticketNumber}. Continuer ?`)) {
         onDelete(order);
       }
@@ -253,6 +262,7 @@ function OrderDetail({
         <button type="button" className="btn btn-ghost" disabled={busy} onClick={() => onAddItems(order)}>
           <Icon name="plus" size={15} /> Articles
         </button>
+        {mayCancel && (
         <button
           type="button"
           className="btn btn-ghost btn-danger"
@@ -265,6 +275,7 @@ function OrderDetail({
         >
           <Icon name="x" size={15} /> Annuler la commande
         </button>
+        )}
       </div>
 
       {/* L'encaissement a eu lieu a la prise de commande ; ceci le corrige */}

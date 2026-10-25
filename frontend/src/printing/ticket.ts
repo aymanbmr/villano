@@ -4,7 +4,7 @@
 // Elle vit desormais ici parce que la caisse imprime en local, sans passer par
 // le serveur : c'est elle qui doit produire les octets. Le serveur garde la
 // sienne pour sa page d'essai ; les deux doivent rester d'accord.
-import type { Order, PrinterConfig, PrintingConfig } from '../api';
+import type { Order, PrinterConfig, PrintingConfig, WaiterTotals, WorkDay } from '../api';
 import type { TicketKind } from '../components/PrintTicket';
 import { EscPos } from './escpos';
 import { LOGO_BITMAP, LOGO_HEIGHT, LOGO_WIDTH } from './logo';
@@ -125,6 +125,46 @@ export function renderTestPage(
     .line(`${printer.host}:${printer.port}`)
     .cut()
     .build();
+}
+
+/**
+ * Ticket de clôture de journée : ce que le caissier compte à la caisse en
+ * espèces doit correspondre au total « Espèces » imprimé ici. Transpose le
+ * récapitulatif déjà affiché dans la popup de clôture, pour en garder une
+ * trace papier.
+ */
+export function renderClosingTicket(
+  workDay: Pick<WorkDay, 'openedAt' | 'closedAt' | 'openedBy' | 'closedBy'>,
+  summary: { orders: number; revenue: number; cash: number; card: number; byWaiter: WaiterTotals[] },
+  config: PrintingConfig,
+  printer: PrinterConfig,
+): Uint8Array {
+  const doc = new EscPos(printer.width);
+  doc.align('center').bold(true).size(2).line(config.header.name).size(1).bold(false);
+  doc.line(config.header.subtitle);
+  doc.rule().bold(true).line('CLÔTURE DE JOURNÉE').bold(false).align('left');
+  doc.rule();
+  doc.row('Ouverte par', workDay.openedBy);
+  doc.row('Depuis', dateTime(workDay.openedAt));
+  doc.row('Clôturée par', workDay.closedBy ?? '—');
+  doc.row('Le', dateTime(workDay.closedAt ?? new Date()));
+  doc.rule();
+  doc.row('Commandes encaissées', String(summary.orders));
+  doc.row('Espèces', money(summary.cash));
+  doc.row('Carte', money(summary.card));
+  doc.bold(true).bigRow('TOTAL', money(summary.revenue)).bold(false);
+
+  if (summary.byWaiter.length > 0) {
+    doc.rule().bold(true).line('PAR SERVEUR').bold(false);
+    for (const row of summary.byWaiter) {
+      doc.line(row.waiterName);
+      doc.row(`${row.orders} cmd · esp. ${money(row.cash)}`, `cb ${money(row.card)}`);
+      doc.row('Total', money(row.revenue));
+    }
+  }
+
+  doc.rule().align('center').line(config.header.footer);
+  return doc.cut().build();
 }
 
 /**
