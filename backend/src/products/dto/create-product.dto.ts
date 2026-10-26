@@ -1,5 +1,6 @@
 import {
   IsBoolean,
+  IsIn,
   IsInt,
   IsNumber,
   IsOptional,
@@ -7,6 +8,7 @@ import {
   MaxLength,
   Min,
 } from 'class-validator';
+import { STATIONS, type Station } from '../../categories/category.entity.js';
 
 export class CreateProductDto {
   @IsString()
@@ -43,4 +45,10 @@ export class CreateProductDto {
   @IsOptional()
   @IsInt()
   categoryId?: number;
+
+  // Exception à la station de la catégorie ; null remet le produit dans le
+  // rang de la sienne.
+  @IsOptional()
+  @IsIn([...STATIONS, null])
+  station?: Station | null;
 }

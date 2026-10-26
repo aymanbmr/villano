@@ -13,6 +13,7 @@ import {
   type WorkDay,
   formatPrice,
   orderLabel,
+  stationOf,
   cachedSnapshot,
 } from '../api';
 import { useCart } from '../useCart';
@@ -132,10 +133,11 @@ export function CaissePage() {
     });
 
   // Les boissons partent au bar, le reste en cuisine : chaque ligne suit la
-  // station de la catégorie de son produit (par défaut la cuisine).
+  // station de son produit — l'exception posée dessus s'il y en a une, sinon
+  // celle de sa catégorie, sinon la cuisine.
   const splitByStation = (items: Order['items']) => {
     const barIds = new Set(
-      products.filter((p) => p.category?.station === 'bar').map((p) => p.id),
+      products.filter((p) => stationOf(p) === 'bar').map((p) => p.id),
     );
     const barItems = items.filter((i) => i.productId != null && barIds.has(i.productId));
     const kitchenItems = items.filter((i) => !(i.productId != null && barIds.has(i.productId)));

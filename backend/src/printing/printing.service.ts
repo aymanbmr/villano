@@ -5,7 +5,7 @@ import { randomBytes } from 'node:crypto';
 import { Socket } from 'node:net';
 import { Setting } from '../settings/setting.entity.js';
 import { Order } from '../orders/order.entity.js';
-import { Product } from '../products/product.entity.js';
+import { Product, stationOf } from '../products/product.entity.js';
 import { EscPos } from './escpos.js';
 import { LOGO_BITMAP, LOGO_HEIGHT, LOGO_WIDTH } from './logo.js';
 import { PrintJob } from './print-job.entity.js';
@@ -185,7 +185,9 @@ export class PrintingService {
       const products = productIds.length
         ? await this.products.find({ where: { id: In(productIds) } })
         : [];
-      const barIds = new Set(products.filter((p) => p.category?.station === 'bar').map((p) => p.id));
+      // stationOf tient compte de l'exception posée sur le produit : un thé à
+      // la menthe reste une boisson chaude, mais son bon part en cuisine.
+      const barIds = new Set(products.filter((p) => stationOf(p) === 'bar').map((p) => p.id));
 
       const barItems = order.items.filter((i) => i.productId != null && barIds.has(i.productId));
       const kitchenItems = order.items.filter(

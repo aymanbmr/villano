@@ -30,10 +30,18 @@ export function ProductForm({ product, categories, onSaved, onClose }: Props) {
   // Nom en cours de saisie, ou null quand le champ est replié
   const [nouvelleCategorie, setNouvelleCategorie] = useState<string | null>(null);
   const [isAvailable, setIsAvailable] = useState(product?.isAvailable ?? true);
+  // Exception à la station de la catégorie. Seul « cuisine » est proposé : le
+  // besoin inverse ne s'est pas présenté, et la colonne accepte déjà « bar »
+  // le jour où il se présentera.
+  const [versCuisine, setVersCuisine] = useState(product?.station === 'kitchen');
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(product?.imageUrl ?? null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Station de la catégorie choisie, pour dire sous la case où le bon partirait
+  // sans elle — plutôt que de laisser deviner.
+  const stationCategorie = cats.find((c) => String(c.id) === categoryId)?.station ?? null;
 
   const creerCategorie = async () => {
     const nom = (nouvelleCategorie ?? '').trim();
@@ -67,6 +75,7 @@ export function ProductForm({ product, categories, onSaved, onClose }: Props) {
       lowStockThreshold: Number(lowStockThreshold) || 0,
       categoryId: categoryId ? Number(categoryId) : null,
       isAvailable,
+      station: versCuisine ? 'kitchen' : null,
     };
     if (!payload.name) return setError('Le nom est obligatoire');
     if (Number.isNaN(payload.price) || payload.price < 0) return setError('Prix invalide');
@@ -217,6 +226,25 @@ export function ProductForm({ product, categories, onSaved, onClose }: Props) {
             <input type="checkbox" checked={isAvailable} onChange={(e) => setIsAvailable(e.target.checked)} />
             Visible sur la caisse
           </label>
+
+          {/* Le thé à la menthe est une boisson chaude et doit le rester dans
+              la carte, mais il se prépare en cuisine. Cette case déplace son
+              bon sans toucher au reste de la catégorie. */}
+          <label className="checkbox field-full">
+            <input
+              type="checkbox"
+              checked={versCuisine}
+              onChange={(e) => setVersCuisine(e.target.checked)}
+            />
+            Bon à imprimer en cuisine
+          </label>
+          <div className="muted field-full form-hint">
+            {versCuisine
+              ? 'Le bon part en cuisine, quelle que soit la station de la catégorie.'
+              : `Sans cette case, le bon suit la catégorie${
+                  stationCategorie ? ` : ${stationCategorie === 'bar' ? 'le bar' : 'la cuisine'}` : ''
+                }.`}
+          </div>
         </div>
 
         {error && <div className="error">{error}</div>}

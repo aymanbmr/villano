@@ -18,5 +18,10 @@ export class Category {
   // Which printer an order line for this category goes to automatically:
   // food to the kitchen, drinks to the bar.
   @Column({ type: 'text', default: 'kitchen' })
-  station: 'kitchen' | 'bar';
+  station: Station;
 }
+
+/** Le poste qui prépare la commande, et donc l'imprimante qui reçoit le bon. */
+export type Station = 'kitchen' | 'bar';
+
+export const STATIONS: Station[] = ['kitchen', 'bar'];

@@ -45,7 +45,22 @@ export interface Product {
   isAvailable: boolean;
   categoryId: number | null;
   category: Category | null;
+  /** Exception à la station de la catégorie ; null = le produit la suit. */
+  station?: 'kitchen' | 'bar' | null;
 }
+
+/**
+ * Où part le bon de cette ligne : l'exception du produit si elle existe, sinon
+ * la station de sa catégorie, sinon la cuisine.
+ *
+ * Le défaut est la cuisine et non le bar : un plat oublié affame un client,
+ * une boisson oubliée le fait patienter. Même règle côté serveur, dans
+ * product.entity.ts.
+ */
+export const stationOf = (product: {
+  station?: 'kitchen' | 'bar' | null;
+  category?: { station?: 'kitchen' | 'bar' } | null;
+}): 'kitchen' | 'bar' => product.station ?? product.category?.station ?? 'kitchen';
 
 // Minimal, non-sensitive employee info: who the cashier can pick as the
 // waiter responsible for an order (no salary/phone/pin, unlike /employees).
@@ -449,6 +464,7 @@ export interface ProductPayload {
   imageUrl?: string | null;
   isAvailable?: boolean;
   categoryId?: number | null;
+  station?: 'kitchen' | 'bar' | null;
 }
 
 export interface CategoryPayload {

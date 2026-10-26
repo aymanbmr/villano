@@ -1508,6 +1508,13 @@ select.input {
   font-weight: 500;
 }
 
+/* Explication sous une case à cocher : décalée sous elle, et assez discrète
+   pour ne pas se lire comme une seconde option. */
+.form-hint {
+  margin: -6px 0 4px 26px;
+  font-size: 12px;
+}
+
 .category-hint {
   margin: -4px 0 10px;
   font-size: 12px;
